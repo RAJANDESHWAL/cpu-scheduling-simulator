@@ -19,7 +19,7 @@ Times are whole-number units. `Idle` means no process is ready.
 
 ---
 
-## 1. Standard test case (all four algorithms)
+## 1. Standard test case (all five algorithms)
 
 ### Input
 
@@ -81,7 +81,30 @@ P1 [0–4] → P3 [4–5] → P4 [5–7] → P2 [7–10] → P5 [10–15]
 - Average RT = same as WT because the algorithm is non-preemptive = **3.20**
 - Utilization = **100.00%**
 
-### 1.3 Priority (non-preemptive, lower number = higher priority)
+### 1.3 SRTF (preemptive SJF)
+
+P1 starts alone at t=0. P3 arrives at t=2 with only 1 unit left, which is shorter than P1's 2, so P3 preempts P1. At t=3, P1 and the newly arrived P4 both have 2 units remaining; P1 continues because it arrived earlier.
+
+**Gantt:**
+
+```text
+P1 [0–2] → P3 [2–3] → P1 [3–5] → P4 [5–7] → P2 [7–10] → P5 [10–15]
+```
+
+| PID | AT | BT | Start | CT | TAT | WT | RT |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| P1 | 0 | 4 | 0 | 5 | 5 | 1 | 0 |
+| P2 | 1 | 3 | 7 | 10 | 9 | 6 | 6 |
+| P3 | 2 | 1 | 2 | 3 | 1 | 0 | 0 |
+| P4 | 3 | 2 | 5 | 7 | 4 | 2 | 2 |
+| P5 | 4 | 5 | 10 | 15 | 11 | 6 | 6 |
+
+- Average TAT = (5 + 9 + 1 + 4 + 11) / 5 = 30 / 5 = **6.00**
+- Average WT = (1 + 6 + 0 + 2 + 6) / 5 = 15 / 5 = **3.00**
+- Average RT = (0 + 6 + 0 + 2 + 6) / 5 = 14 / 5 = **2.80**
+- Utilization = **100.00%**
+
+### 1.4 Priority (non-preemptive, lower number = higher priority)
 
 P1 (priority 2) is the only arrival at t=0. At t=4 the available priorities are P2=1, P4=2, P3=3, P5=4.
 
@@ -104,7 +127,7 @@ P1 [0–4] → P2 [4–7] → P4 [7–9] → P3 [9–10] → P5 [10–15]
 - Average RT = **4.00**
 - Utilization = **100.00%**
 
-### 1.4 Round Robin, quantum 2
+### 1.5 Round Robin, quantum 2
 
 Queue trace:
 
@@ -141,16 +164,17 @@ P1 [0–2] → P2 [2–4] → P3 [4–5] → P1 [5–7] → P4 [7–9] → P5 [9
 - Average RT = (0 + 1 + 2 + 4 + 5) / 5 = 12 / 5 = **2.40**
 - Utilization = **100.00%**
 
-### 1.5 Comparison summary
+### 1.6 Comparison summary
 
 | Algorithm | Avg TAT | Avg WT | Avg RT | CPU util |
 |---|---:|---:|---:|---:|
 | FCFS | 6.80 | 3.80 | 3.80 | 100.00% |
 | SJF | 6.20 | 3.20 | 3.20 | 100.00% |
+| SRTF | 6.00 | 3.00 | 2.80 | 100.00% |
 | Round Robin (q=2) | 7.60 | 4.60 | 2.40 | 100.00% |
 | Priority | 7.00 | 4.00 | 4.00 | 100.00% |
 
-Winners: **SJF** for TAT and WT, **Round Robin** for RT, and **all four** for CPU utilization.
+Winners: **SRTF** for TAT and WT, **Round Robin** for RT, and **all five** for CPU utilization.
 
 ---
 
@@ -164,7 +188,7 @@ Winners: **SJF** for TAT and WT, **Round Robin** for RT, and **all four** for CP
 
 Quantum: 2
 
-### Expected for FCFS, SJF, Priority
+### Expected for FCFS, SJF, SRTF and Priority
 
 ```text
 Idle [0–3] → P1 [3–7]
@@ -250,7 +274,17 @@ P2 [0–1] → P3 [1–2] → P1 [2–4]
 
 Same metrics as SJF for this input: TAT **2.33**, WT **1.00**, RT **1.00**.
 
-### 3.4 Round Robin, quantum 2
+### 3.4 SRTF
+
+All three are available at t=0. P2 and P3 have the smallest remaining time (1); P2 has the smaller PID, so P2 runs, then P3, then P1.
+
+```text
+P2 [0–1] → P3 [1–2] → P1 [2–4]
+```
+
+Same metrics as SJF/Priority for this input: TAT **2.33**, WT **1.00**, RT **1.00**, utilization **100%**.
+
+### 3.5 Round Robin, quantum 2
 
 All arrive at 0, ordered P1, P2, P3. P1's burst equals the quantum, so it finishes without preemption; P2 and P3 then run.
 
@@ -312,9 +346,84 @@ P1 [0–2] → Idle [2–5] → P2 [5–7] → P3 [7–8] → P2 [8–9]
 - Average RT = 1/3 = **0.33**
 - Utilization = **66.67%**
 
+### 4.3 SRTF
+
+P2 starts at t=5. At t=6, P3 arrives with only 1 unit remaining, while P2 has 2 left, so P3 preempts P2. P2 then resumes at t=7.
+
+```text
+P1 [0–2] → Idle [2–5] → P2 [5–6] → P3 [6–7] → P2 [7–9]
+```
+
+| PID | AT | BT | Start | CT | TAT | WT | RT |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| P1 | 0 | 2 | 0 | 2 | 2 | 0 | 0 |
+| P2 | 5 | 3 | 5 | 9 | 4 | 1 | 0 |
+| P3 | 6 | 1 | 6 | 7 | 1 | 0 | 0 |
+
+- Average TAT = 7/3 = **2.33**
+- Average WT = 1/3 = **0.33**
+- Average RT = 0/3 = **0.00**
+- Busy = 6, idle = 3, elapsed = 9 → utilization = **66.67%**
+
 ---
 
-## 5. Equal burst tie (SJF)
+## 5. SRTF preemption and equal-remaining tie
+
+### 5.1 Shorter arrival preempts the running process
+
+**Input**
+
+| PID | Arrival | Burst | Priority |
+|---|---:|---:|---:|
+| P1 | 0 | 7 | 1 |
+| P2 | 2 | 2 | 2 |
+
+At t=2, P1 has 5 units left while P2 needs only 2, so P2 preempts P1. P1 resumes at t=4.
+
+```text
+P1 [0–2] → P2 [2–4] → P1 [4–9]
+```
+
+| PID | AT | BT | Start | CT | TAT | WT | RT |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| P1 | 0 | 7 | 0 | 9 | 9 | 2 | 0 |
+| P2 | 2 | 2 | 2 | 4 | 2 | 0 | 0 |
+
+- Average TAT = 11/2 = **5.50**
+- Average WT = 2/2 = **1.00**
+- Average RT = 0/2 = **0.00**
+- Utilization = **100%**
+
+### 5.2 Equal remaining time does not preempt
+
+**Input**
+
+| PID | Arrival | Burst | Priority |
+|---|---:|---:|---:|
+| P1 | 0 | 4 | 1 |
+| P2 | 2 | 2 | 2 |
+
+At t=2 both processes have 2 units remaining. The tie-break rule prefers the earlier arrival, so P1 keeps the CPU.
+
+```text
+P1 [0–4] → P2 [4–6]
+```
+
+| PID | AT | BT | Start | CT | TAT | WT | RT |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| P1 | 0 | 4 | 0 | 4 | 4 | 0 | 0 |
+| P2 | 2 | 2 | 4 | 6 | 4 | 2 | 2 |
+
+- Average TAT = 8/2 = **4.00**
+- Average WT = 2/2 = **1.00**
+- Average RT = 2/2 = **1.00**
+- Utilization = **100%**
+
+If the implementation incorrectly preempted on equal remaining time, P2 would run 2–4 and P1 4–6, giving P2 a response time of 0. The automated test checks the exact timeline.
+
+---
+
+## 6. Equal burst tie (SJF)
 
 ### Input
 
@@ -340,7 +449,7 @@ Average TAT = 19/3 = **6.33**, average WT = 10/3 = **3.33**, average RT = **3.33
 
 ---
 
-## 6. Equal priority tie (Priority Scheduling)
+## 7. Equal priority tie (Priority Scheduling)
 
 ### Input
 
@@ -368,7 +477,7 @@ If this were SJF, P3 (burst 1) would run before P2 (burst 2), producing a differ
 
 ---
 
-## 7. Quantum larger than every burst
+## 8. Quantum larger than every burst
 
 Input: the standard sample from section 1, quantum **100**.
 
@@ -391,7 +500,7 @@ The automated test compares both the entire timeline and the entire metrics dict
 
 ---
 
-## 8. Quantum of 1
+## 9. Quantum of 1
 
 ### Input
 
@@ -427,7 +536,7 @@ The key observation is that P2's response time is 0, not 1, because it starts at
 
 ---
 
-## 9. Arrival exactly at quantum expiry (Round Robin ordering rule)
+## 10. Arrival exactly at quantum expiry (Round Robin ordering rule)
 
 ### Input
 
@@ -460,7 +569,7 @@ Incorrect ordering would produce `P1 [0–3] → P2 [3–4]`, giving P2 a respon
 
 ---
 
-## 10. Validation cases
+## 11. Validation cases
 
 All messages below come from `app.py` and are shown inline in the browser. No browser `alert()` is used.
 
@@ -469,7 +578,7 @@ All messages below come from `app.py` and are shown inline in the browser. No br
 | `{"processes": [], "algorithm": "fcfs"}` | 400 | `Add at least one process before running the simulation.` |
 | `{"algorithm": "fcfs"}` (no list) | 400 | `No process list was received. Add at least one process.` |
 | `processes` is a string | 400 | `The process list must be an array of processes.` |
-| `algorithm` missing/invalid | 400 | `Choose a valid algorithm: fcfs, sjf, rr or priority.` |
+| `algorithm` missing/invalid | 400 | `Choose a valid algorithm: fcfs, sjf, srtf, rr or priority.` |
 | `algorithm: "rr"` without quantum | 400 | `Time quantum is required.` |
 | `algorithm: "rr", quantum: 0` | 400 | `Time quantum must be greater than 0.` |
 | Arrival `-1` | 400 | `Process 'P1': Arrival time cannot be negative.` |
@@ -489,7 +598,7 @@ Client-side checks mirror these rules, so the user usually sees the message befo
 
 ---
 
-## 11. Automated test coverage
+## 12. Automated test coverage
 
 Run:
 
@@ -500,7 +609,7 @@ python -m pytest -q
 Actual final output:
 
 ```text
-45 passed in 0.30s
+51 passed in 1.74s
 ```
 
 Timing varies slightly by machine; the test count and results do not.
@@ -509,21 +618,22 @@ Timing varies slightly by machine; the test count and results do not.
 |---|---|
 | PID natural ordering | `test_pid_sort_key_orders_numbers_naturally` |
 | Gantt merging | `test_merge_timeline_joins_only_touching_blocks_of_same_process`, `test_round_robin_merges_consecutive_blocks` |
-| Standard sample | `test_fcfs_sample`, `test_sjf_sample`, `test_priority_sample`, `test_round_robin_sample` |
+| Standard sample | `test_fcfs_sample`, `test_sjf_sample`, `test_srtf_sample`, `test_priority_sample`, `test_round_robin_sample` |
+| SRTF behaviour | `test_srtf_preempts_when_shorter_process_arrives`, `test_srtf_equal_remaining_time_does_not_preempt_earlier_process`, `test_srtf_simultaneous_arrivals_use_remaining_then_pid`, `test_srtf_idle_gap_and_resumption` |
 | RR expiry ordering | `test_round_robin_arrival_at_expiry_enters_before_preempted_process` |
 | Quantum edges | `test_round_robin_quantum_larger_than_every_burst_matches_fcfs`, `test_round_robin_quantum_one`, `test_round_robin_rejects_invalid_quantum` |
-| Idle gaps | `test_idle_gap_non_preemptive[fcfs/sjf/priority_scheduling]`, `test_idle_gap_round_robin`, `test_single_process_with_initial_idle` |
-| Ties and simultaneous arrivals | `test_sjf_equal_burst_tie_uses_arrival_then_pid`, `test_priority_tie_ignores_burst_and_uses_pid`, `test_fcfs_simultaneous_arrivals_are_sorted_by_pid`, `test_sjf_and_priority_simultaneous_arrivals` |
+| Idle gaps | `test_idle_gap_non_preemptive[fcfs/sjf/priority_scheduling]`, `test_idle_gap_round_robin`, `test_srtf_idle_gap_and_resumption`, `test_single_process_with_initial_idle` |
+| Ties and simultaneous arrivals | `test_sjf_equal_burst_tie_uses_arrival_then_pid`, `test_priority_tie_ignores_burst_and_uses_pid`, `test_fcfs_simultaneous_arrivals_are_sorted_by_pid`, `test_sjf_and_priority_simultaneous_arrivals`, `test_srtf_simultaneous_arrivals_use_remaining_then_pid` |
 | Best algorithm / ties | `test_find_best_algorithms_on_sample`, `test_find_best_algorithms_keeps_ties` |
 | Web page and assets | `test_index_page_loads`, `test_static_assets_load` |
-| API success | `test_api_schedule_fcfs`, `test_api_schedule_round_robin`, `test_api_compare` |
+| API success | `test_api_schedule_fcfs`, `test_api_schedule_round_robin`, `test_api_schedule_srtf`, `test_api_compare` |
 | API validation | `test_api_schedule_rejects_bad_settings` (6 parameter cases), `test_api_rejects_invalid_process_fields` (9 cases), `test_api_rejects_duplicate_pids_case_insensitively`, `test_api_compare_requires_quantum`, `test_api_rejects_non_json_body` |
 
 The test file is `tests/test_algorithms.py`.
 
 ---
 
-## 12. Live server and browser verification
+## 13. Live server and browser verification
 
 The Flask app was actually started during development (not only exercised through the pytest client), and the endpoints were called over HTTP:
 
@@ -532,8 +642,9 @@ GET  /                            -> 200
 GET  /static/css/style.css        -> 200
 GET  /static/js/main.js           -> 200
 POST /api/schedule (FCFS)         -> 200 | avg TAT: 6.8 | blocks: 5
+POST /api/schedule (SRTF)         -> 200 | avg TAT: 6.0 | avg WT: 3.0 | avg RT: 2.8 | blocks: 6
 POST /api/schedule (RR q=2)       -> 200 | avg RT: 2.4  | blocks: 8
-POST /api/compare                 -> 200 | algorithms: FCFS, SJF, Round Robin, Priority
+POST /api/compare                 -> 200 | algorithms: FCFS, SJF, SRTF, Round Robin, Priority
 POST /api/schedule (empty list)   -> 400 | Add at least one process before running the simulation.
 POST /api/compare (no quantum)    -> 400 | Time quantum is required.
 ```
@@ -542,10 +653,12 @@ The page was then driven in headless Chrome:
 
 - sample workload loaded → 5 table rows
 - FCFS → average TAT 6.80, WT 3.80, RT 3.80, utilization 100.00%, 5 Gantt blocks
+- SRTF → average TAT 6.00, WT 3.00, RT 2.80, utilization 100.00%, 6 Gantt blocks
 - Round Robin q=2 → average TAT 7.60, WT 4.60, RT 2.40, 8 Gantt blocks
-- comparison → 4 table rows, 4 best-value cards, 3 Chart.js charts with values `[3.8, 3.2, 4.6, 4]`, `[6.8, 6.2, 7.6, 7]`, `[3.8, 3.2, 2.4, 4]`
+- comparison → 5 table rows, 4 best-value cards, 3 Chart.js charts with labels `FCFS / SJF / SRTF / RR (q=2) / Priority` and values `[3.8, 3.2, 3.0, 4.6, 4]`, `[6.8, 6.2, 6.0, 7.6, 7]`, `[3.8, 3.2, 2.8, 2.4, 4]`
 - empty-list run → inline error, results hidden
 - add / duplicate error / edit / delete all behaved correctly
 - mobile width 390 px → no page-level horizontal overflow
+- browser console → 0 severe messages
 
 These checks confirm that the frontend and backend work together, not just individually.

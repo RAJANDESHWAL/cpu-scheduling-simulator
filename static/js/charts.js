@@ -15,6 +15,13 @@
     var BEST_BORDER = "#166534";
     var NORMAL_COLOR = "#5eead4";
     var NORMAL_BORDER = "#0f766e";
+    var SHORT_LABELS = {
+        fcfs: "FCFS",
+        sjf: "SJF",
+        srtf: "SRTF",
+        rr: "RR",
+        priority: "Priority"
+    };
 
     function isBest(bestList, algorithmName) {
         return Array.isArray(bestList) && bestList.indexOf(algorithmName) !== -1;
@@ -119,10 +126,11 @@
         destroyCharts();
 
         var labels = results.map(function (result) {
+            var shortLabel = SHORT_LABELS[result.algorithm_key] || result.algorithm;
             if (result.algorithm_key === "rr") {
-                return result.algorithm + " (q=" + result.quantum + ")";
+                return shortLabel + " (q=" + result.quantum + ")";
             }
-            return result.algorithm;
+            return shortLabel;
         });
         var algorithms = results.map(function (result) {
             return result.algorithm;

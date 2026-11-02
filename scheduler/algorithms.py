@@ -2,7 +2,7 @@
 scheduler/algorithms.py
 =======================
 
-Pure-Python implementations of four single-core CPU scheduling algorithms.
+Pure-Python implementations of five single-core CPU scheduling algorithms.
 
 This module has NO Flask imports and NO knowledge of the web page.  Every
 function receives a list of process dictionaries and returns a plain Python
@@ -28,6 +28,7 @@ IDLE_PID = "Idle"
 ALGORITHM_LABELS = {
     "fcfs": "FCFS",
     "sjf": "SJF",
+    "srtf": "SRTF",
     "rr": "Round Robin",
     "priority": "Priority",
 }
@@ -181,6 +182,78 @@ def sjf(processes):
     )
 
 
+def srtf(processes):
+    """
+    Shortest Remaining Time First (preemptive SJF).
+
+    At every arrival the algorithm compares the remaining burst times of all
+    arrived, unfinished processes.  The smallest remaining time runs; if a new
+    arrival is shorter than the running process, it preempts immediately.
+
+    Ties are broken by earlier arrival time and then by the smaller PID, using
+    the same natural PID ordering as the other algorithms.  Because only a new
+    arrival can change the winner, the running process can safely execute until
+    either it finishes or the next arrival occurs.
+    """
+    ordered = sorted(processes, key=lambda p: (p["arrival"], pid_sort_key(p["pid"])))
+    remaining = {p["pid"]: p["burst"] for p in processes}
+    records = {}
+    timeline = []
+    completed = 0
+    time = 0
+
+    while completed < len(processes):
+        available = [
+            p for p in ordered
+            if p["arrival"] <= time and remaining[p["pid"]] > 0
+        ]
+
+        if not available:
+            # No process has arrived yet: jump to the next arrival.
+            next_arrival = min(
+                p["arrival"] for p in ordered if remaining[p["pid"]] > 0
+            )
+            timeline.append({"pid": IDLE_PID, "start": time, "end": next_arrival})
+            time = next_arrival
+            continue
+
+        chosen = min(
+            available,
+            key=lambda p: (
+                remaining[p["pid"]],
+                p["arrival"],
+                pid_sort_key(p["pid"]),
+            ),
+        )
+        pid = chosen["pid"]
+
+        if pid not in records:
+            records[pid] = _record(chosen, time, None)
+
+        future_arrivals = [
+            p["arrival"]
+            for p in ordered
+            if p["arrival"] > time and remaining[p["pid"]] > 0
+        ]
+        next_arrival = min(future_arrivals) if future_arrivals else None
+
+        start = time
+        if next_arrival is None:
+            run_for = remaining[pid]
+        else:
+            run_for = min(remaining[pid], next_arrival - time)
+
+        time += run_for
+        remaining[pid] -= run_for
+        timeline.append({"pid": pid, "start": start, "end": time})
+
+        if remaining[pid] == 0:
+            records[pid]["completion_time"] = time
+            completed += 1
+
+    return _build_result("srtf", processes, records, timeline)
+
+
 def priority_scheduling(processes):
     """
     Priority Scheduling (non-preemptive, lower number = higher priority).
@@ -273,7 +346,7 @@ def run_algorithm(algorithm_key, processes, quantum=None):
     Parameters
     ----------
     algorithm_key : str
-        One of "fcfs", "sjf", "rr", "priority" (case-insensitive).
+        One of "fcfs", "sjf", "srtf", "rr", "priority" (case-insensitive).
     processes : list[dict]
         Validated process dictionaries.
     quantum : int, optional
@@ -291,6 +364,8 @@ def run_algorithm(algorithm_key, processes, quantum=None):
         return fcfs(processes)
     if key == "sjf":
         return sjf(processes)
+    if key == "srtf":
+        return srtf(processes)
     if key == "priority":
         return priority_scheduling(processes)
     if key == "rr":

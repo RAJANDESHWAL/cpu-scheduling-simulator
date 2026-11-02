@@ -33,6 +33,7 @@ from scheduler.algorithms import (
     round_robin,
     run_algorithm,
     sjf,
+    srtf,
 )
 from scheduler.metrics import calculate_metrics, find_best_algorithms
 
@@ -66,8 +67,8 @@ def by_pid(result):
 
 
 def all_results(processes, quantum=2):
-    """Run all four algorithms and attach metrics."""
-    keys = ("fcfs", "sjf", "rr", "priority")
+    """Run all five algorithms and attach metrics."""
+    keys = ("fcfs", "sjf", "srtf", "rr", "priority")
     return [
         calculate_metrics(
             run_algorithm(key, processes, quantum if key == "rr" else None)
@@ -148,6 +149,117 @@ def test_sjf_sample():
     # Non-preemptive, so RT = WT = 3.2
     assert result["metrics"]["avg_response_time"] == pytest.approx(3.2)
     assert result["metrics"]["cpu_utilization"] == pytest.approx(100.0)
+
+
+def test_srtf_sample():
+    result = calculate_metrics(srtf(SAMPLE))
+
+    # P3 (remaining 1) preempts P1 at t=2.  At t=3, P1 and P4 both have
+    # remaining 2, so P1 continues because it arrived earlier.
+    assert timeline_of(result) == [
+        ("P1", 0, 2),
+        ("P3", 2, 3),
+        ("P1", 3, 5),
+        ("P4", 5, 7),
+        ("P2", 7, 10),
+        ("P5", 10, 15),
+    ]
+
+    rows = by_pid(result)
+    assert [rows[pid]["completion_time"] for pid in ("P1", "P2", "P3", "P4", "P5")] == [5, 10, 3, 7, 15]
+    # TAT = 5, 9, 1, 4, 11 -> 30 / 5 = 6.0
+    assert result["metrics"]["avg_turnaround_time"] == pytest.approx(6.0)
+    # WT = 1, 6, 0, 2, 6 -> 15 / 5 = 3.0
+    assert result["metrics"]["avg_waiting_time"] == pytest.approx(3.0)
+    # RT = 0, 6, 0, 2, 6 -> 14 / 5 = 2.8
+    assert result["metrics"]["avg_response_time"] == pytest.approx(2.8)
+    assert result["metrics"]["cpu_utilization"] == pytest.approx(100.0)
+
+
+def test_srtf_preempts_when_shorter_process_arrives():
+    processes = [
+        {"pid": "P1", "arrival": 0, "burst": 7, "priority": 1},
+        {"pid": "P2", "arrival": 2, "burst": 2, "priority": 2},
+    ]
+    result = calculate_metrics(srtf(processes))
+
+    # P1 has 5 units left at t=2; P2 needs only 2, so P2 preempts it.
+    assert timeline_of(result) == [
+        ("P1", 0, 2),
+        ("P2", 2, 4),
+        ("P1", 4, 9),
+    ]
+    rows = by_pid(result)
+    assert rows["P1"]["completion_time"] == 9
+    assert rows["P2"]["completion_time"] == 4
+    assert rows["P2"]["start_time"] == 2
+    assert result["metrics"]["avg_turnaround_time"] == pytest.approx(5.5)
+    assert result["metrics"]["avg_waiting_time"] == pytest.approx(1.0)
+    assert result["metrics"]["avg_response_time"] == pytest.approx(0.0)
+
+
+def test_srtf_equal_remaining_time_does_not_preempt_earlier_process():
+    processes = [
+        {"pid": "P1", "arrival": 0, "burst": 4, "priority": 1},
+        {"pid": "P2", "arrival": 2, "burst": 2, "priority": 2},
+    ]
+    result = calculate_metrics(srtf(processes))
+
+    # At t=2 both have 2 units left.  P1 arrived earlier, so it continues.
+    assert timeline_of(result) == [
+        ("P1", 0, 4),
+        ("P2", 4, 6),
+    ]
+    rows = by_pid(result)
+    assert rows["P1"]["completion_time"] == 4
+    assert rows["P2"]["completion_time"] == 6
+    assert rows["P2"]["start_time"] == 4
+    assert result["metrics"]["avg_turnaround_time"] == pytest.approx(4.0)
+    assert result["metrics"]["avg_waiting_time"] == pytest.approx(1.0)
+    assert result["metrics"]["avg_response_time"] == pytest.approx(1.0)
+
+
+def test_srtf_simultaneous_arrivals_use_remaining_then_pid():
+    processes = [
+        {"pid": "P1", "arrival": 0, "burst": 4, "priority": 1},
+        {"pid": "P2", "arrival": 0, "burst": 4, "priority": 2},
+        {"pid": "P3", "arrival": 0, "burst": 2, "priority": 3},
+    ]
+    result = calculate_metrics(srtf(processes))
+
+    # P3 is shortest.  Then P1 and P2 tie on remaining time and arrival,
+    # so the smaller PID P1 runs before P2.
+    assert timeline_of(result) == [
+        ("P3", 0, 2),
+        ("P1", 2, 6),
+        ("P2", 6, 10),
+    ]
+    assert result["metrics"]["avg_turnaround_time"] == pytest.approx(6.0)
+    assert result["metrics"]["avg_waiting_time"] == pytest.approx(8 / 3)
+    assert result["metrics"]["avg_response_time"] == pytest.approx(8 / 3)
+
+
+def test_srtf_idle_gap_and_resumption():
+    result = calculate_metrics(srtf(IDLE_CASE))
+
+    # P2 starts at t=5, but P3 arrives at t=6 with 1 unit left and preempts it.
+    assert timeline_of(result) == [
+        ("P1", 0, 2),
+        (IDLE_PID, 2, 5),
+        ("P2", 5, 6),
+        ("P3", 6, 7),
+        ("P2", 7, 9),
+    ]
+    rows = by_pid(result)
+    assert rows["P1"]["completion_time"] == 2
+    assert rows["P2"]["completion_time"] == 9
+    assert rows["P3"]["completion_time"] == 7
+    # TAT = 2, 4, 1 -> 7/3; WT = 0, 1, 0 -> 1/3; all first starts equal
+    # their arrival times, so RT = 0.
+    assert result["metrics"]["avg_turnaround_time"] == pytest.approx(7 / 3)
+    assert result["metrics"]["avg_waiting_time"] == pytest.approx(1 / 3)
+    assert result["metrics"]["avg_response_time"] == pytest.approx(0.0)
+    assert result["metrics"]["cpu_utilization"] == pytest.approx(200 / 3)
 
 
 def test_priority_sample():
@@ -406,11 +518,11 @@ def test_find_best_algorithms_on_sample():
     results = all_results(SAMPLE, quantum=2)
     best = find_best_algorithms(results)
 
-    assert best["avg_turnaround_time"] == ["SJF"]
-    assert best["avg_waiting_time"] == ["SJF"]
-    # Round Robin responds to new processes sooner: 2.4 vs SJF's 3.2.
+    assert best["avg_turnaround_time"] == ["SRTF"]
+    assert best["avg_waiting_time"] == ["SRTF"]
+    # Round Robin responds to new processes sooner: 2.4 vs SRTF's 2.8.
     assert best["avg_response_time"] == ["Round Robin"]
-    assert best["cpu_utilization"] == ["FCFS", "SJF", "Round Robin", "Priority"]
+    assert best["cpu_utilization"] == ["FCFS", "SJF", "SRTF", "Round Robin", "Priority"]
 
 
 def test_find_best_algorithms_keeps_ties():
@@ -477,6 +589,18 @@ def test_api_schedule_round_robin(client):
     assert data["metrics"]["avg_response_time"] == pytest.approx(2.4)
 
 
+def test_api_schedule_srtf(client):
+    response = client.post(
+        "/api/schedule",
+        json={"processes": SAMPLE, "algorithm": "srtf"},
+    )
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data["algorithm"] == "SRTF"
+    assert data["metrics"]["avg_turnaround_time"] == pytest.approx(6.0)
+    assert len(data["timeline"]) == 6
+
+
 def test_api_compare(client):
     response = client.post(
         "/api/compare",
@@ -489,10 +613,11 @@ def test_api_compare(client):
     assert [item["algorithm"] for item in data["results"]] == [
         "FCFS",
         "SJF",
+        "SRTF",
         "Round Robin",
         "Priority",
     ]
-    assert data["best"]["avg_turnaround_time"] == ["SJF"]
+    assert data["best"]["avg_turnaround_time"] == ["SRTF"]
 
 
 @pytest.mark.parametrize(

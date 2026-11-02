@@ -1,6 +1,6 @@
 # CPU Scheduler Lab
 
-A complete, browser-based **CPU Task Scheduler Simulator** built as an Operating Systems mini-project. It runs four classic single-core scheduling algorithms on a process list that you build in the page, then shows a Gantt chart, per-process metrics, averages and an algorithm comparison with Chart.js bar charts.
+A complete, browser-based **CPU Task Scheduler Simulator** built as an Operating Systems mini-project. It runs five classic single-core scheduling algorithms on a process list that you build in the page, then shows a Gantt chart, per-process metrics, averages and an algorithm comparison with Chart.js bar charts.
 
 > **Simulation only:** this project demonstrates how CPU scheduling algorithms behave. It does **not** read, control or modify the real scheduler of your operating system.
 
@@ -11,9 +11,9 @@ A complete, browser-based **CPU Task Scheduler Simulator** built as an Operating
 Operating systems must decide which ready process gets the CPU next. Different policies produce different waiting times, turnaround times and response times. This simulator makes those differences visible:
 
 1. Add processes with an arrival time, burst time and priority.
-2. Choose FCFS, SJF, Round Robin or Priority Scheduling.
+2. Choose FCFS, SJF, SRTF, Round Robin or Priority Scheduling.
 3. Run the simulation and inspect the Gantt chart and metrics.
-4. Compare all four algorithms on exactly the same input.
+4. Compare all five algorithms on exactly the same input.
 
 The application is served locally by **Flask** and runs entirely in a web browser. There is no Tkinter window, desktop GUI or external database.
 
@@ -21,12 +21,12 @@ The application is served locally by **Flask** and runs entirely in a web browse
 
 ## Objectives
 
-- Implement four standard CPU scheduling algorithms from scratch in pure Python.
+- Implement five standard CPU scheduling algorithms from scratch in pure Python.
 - Apply one consistent set of scheduling and tie-breaking rules.
 - Calculate CT, TAT, WT, RT and CPU utilization correctly.
 - Visualise the schedule as an interactive Gantt chart.
 - Let a user add, edit and delete processes without reloading the page.
-- Compare all four algorithms on identical inputs and identify the best result per metric.
+- Compare all five algorithms on identical inputs and identify the best result per metric.
 - Keep scheduling logic separate from Flask and from frontend code so that every part is easy to test and explain.
 
 ---
@@ -34,7 +34,7 @@ The application is served locally by **Flask** and runs entirely in a web browse
 ## Features
 
 - **Process management:** add, edit and delete processes; duplicate-ID detection; reserved `Idle` label.
-- **Four algorithms:** FCFS, SJF, Round Robin (configurable quantum) and non-preemptive Priority Scheduling.
+- **Five algorithms:** FCFS, SJF, SRTF (preemptive SJF), Round Robin (configurable quantum) and non-preemptive Priority Scheduling.
 - **Interactive Gantt chart:** duration-scaled coloured blocks with a readable minimum width, process labels, time markers, hover/focus tooltips, idle blocks and a legend.
 - **Per-process results:** arrival, burst, priority, first start, completion, TAT, WT and RT.
 - **Summary metrics:** average TAT, average WT, average RT, CPU utilization, busy time, idle time and total elapsed time.
@@ -42,7 +42,7 @@ The application is served locally by **Flask** and runs entirely in a web browse
 - **One-click sample workload** and **clear-all**.
 - **Inline validation** on the page (no browser `alert()` popups).
 - **Responsive layout** for desktop, tablet and mobile.
-- **45 automated Python tests** covering algorithms, metrics, edge cases and API validation.
+- **51 automated Python tests** covering algorithms, metrics, edge cases and API validation.
 
 ---
 
@@ -52,17 +52,19 @@ The application is served locally by **Flask** and runs entirely in a web browse
 |---|---|---|---|
 | `fcfs` | First Come, First Served | No | Process with the earliest arrival time runs to completion. |
 | `sjf` | Shortest Job First | No | Among arrived processes, the smallest burst time runs to completion. |
+| `srtf` | Shortest Remaining Time First | Yes | Among arrived processes, the smallest **remaining** time runs; a shorter new arrival preempts the CPU. |
 | `rr` | Round Robin | Yes | Each process runs for at most one time quantum, then re-joins the ready queue. |
 | `priority` | Priority Scheduling | No | Among arrived processes, the smallest priority number runs to completion. |
 
 ### Scheduling conventions used everywhere
 
-- **Tie-breaking:** compare arrival time, then burst time or priority as appropriate, and finally the smaller Process ID.
+- **Tie-breaking:** each algorithm compares its primary key, then arrival time, then the smaller Process ID. For SJF the primary key is burst time; for SRTF it is remaining time; for Priority it is the priority number.
 - **Simultaneous arrivals:** all processes arriving at the same time become available together and are ordered by the tie-breaking rule.
 - **Process ID ordering:** natural ordering is used, so `P2` comes before `P10`. IDs without a numeric suffix are compared case-insensitively.
 - **Idle CPU:** if no process has arrived, an `Idle` block is inserted and time jumps to the next arrival. Idle time is excluded from CPU utilization.
+- **SRTF preemption:** at every arrival, the arriving process is compared with the running process using remaining time. If it is shorter, it preempts immediately; if the remaining times tie, the earlier arrival (then smaller PID) keeps the CPU.
 - **Round Robin queue rule:** a process that arrives exactly when another process's quantum expires enters the ready queue **before** the preempted process is added back.
-- **Round Robin Gantt rule:** consecutive blocks belonging to the same process are merged (for example `0-2, 2-4, 4-5` becomes `0-5`).
+- **Gantt merging:** consecutive blocks belonging to the same process are merged (for example `0-2, 2-4, 4-5` becomes `0-5`). This is most visible in Round Robin and SRTF.
 - **Response time:** first CPU start time minus arrival time.
 - **Formulas:**
   - `TAT = CT - AT`
@@ -97,7 +99,7 @@ cpu-scheduler-simulator/
 ├── requirements.txt            Python dependencies
 ├── scheduler/
 │   ├── __init__.py             Package marker and short description
-│   ├── algorithms.py           FCFS, SJF, Round Robin, Priority (pure Python)
+│   ├── algorithms.py           FCFS, SJF, SRTF, Round Robin, Priority (pure Python)
 │   └── metrics.py              CT/TAT/WT/RT, averages, utilisation, best-algorithm helper
 ├── templates/
 │   └── index.html              The single-page website
@@ -115,14 +117,14 @@ cpu-scheduler-simulator/
     ├── README.md               This file
     ├── FUNCTION_GUIDE.md       Function-by-function reference
     ├── CODE_WALKTHROUGH.md     Execution flow, API examples, call hierarchy, flowcharts
-    ├── VIVA_PREPARATION.md     78 viva questions and answers
+    ├── VIVA_PREPARATION.md     85 viva questions and answers
     └── TEST_CASES.md           Hand-verified test cases and expected outputs
 ```
 
 ### Why this structure?
 
 - **`scheduler/algorithms.py`** contains only scheduling logic. It can be imported and tested without Flask, a browser or a server.
-- **`scheduler/metrics.py`** keeps every formula in one place, so all four algorithms are measured identically.
+- **`scheduler/metrics.py`** keeps every formula in one place, so all five algorithms are measured identically.
 - **`app.py`** is a thin HTTP layer: it validates JSON, calls the scheduler, and returns JSON.
 - **`main.js`** owns UI state and talks to the API. **`gantt.js`** and **`charts.js`** each render one kind of visual.
 - **`index.html`** is a single page with sections and smooth-scroll navigation. This keeps the frontend easy to demonstrate and avoids a build step.
@@ -173,7 +175,7 @@ Runs one algorithm.
 
 ### `POST /api/compare`
 
-Runs all four algorithms on the same list. `quantum` is always required because Round Robin is included.
+Runs all five algorithms on the same list. `quantum` is always required because Round Robin is included.
 
 ```json
 {
@@ -254,9 +256,9 @@ The page loads Chart.js from `https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/c
 1. **Load a workload.** Press **Load sample** for five ready-made processes, or add your own.
 2. **Add a process.** Enter a Process ID, whole-number arrival time, burst time and priority. Press **Add process**.
 3. **Edit or delete.** Use the **Edit** and **Delete** buttons in the process table. Editing keeps the process in its current list position; **Cancel edit** restores add mode.
-4. **Choose an algorithm.** Click one of the four algorithm cards. The quantum field appears only for Round Robin.
+4. **Choose an algorithm.** Click one of the five algorithm cards. The quantum field appears only for Round Robin.
 5. **Run.** Press **Run simulation**. The page shows the Gantt chart, per-process metrics and averages.
-6. **Compare.** Press **Compare all four** to run every algorithm on the same list. The best value in each metric is highlighted.
+6. **Compare.** Press **Compare all five** to run every algorithm on the same list. The best value in each metric is highlighted.
 7. **Start over.** Press **Clear all** to empty the process list.
 
 Validation errors appear next to the form or the relevant action button. The browser never uses `alert()`.
@@ -274,20 +276,21 @@ python -m pytest -v
 Actual final result from this build:
 
 ```text
-45 passed in 0.30s
+51 passed in 1.74s
 ```
 
 Exact timing varies slightly between machines and runs.
 
 The tests cover:
 
-- FCFS, SJF, Priority and Round Robin on a shared sample
+- FCFS, SJF, SRTF, Priority and Round Robin on a shared sample
+- SRTF preemption, equal-remaining ties and resumption after preemption
 - Round Robin's arrival-at-expiry ordering rule
 - quantum of 1, quantum larger than every burst, invalid quantum
 - idle gaps and CPU utilization
 - single process with initial idle time
 - equal-burst, equal-priority and simultaneous-arrival tie-breaking
-- merged Round Robin Gantt blocks
+- merged Round Robin and SRTF Gantt blocks
 - `find_best_algorithms` with and without ties
 - all API success paths and validation failures
 - static assets and the index page
@@ -316,7 +319,7 @@ The hand calculations for these values are in [TEST_CASES.md](TEST_CASES.md).
 
 - **Placeholder:** `[INSERT ALGORITHM SELECTION SCREENSHOT HERE]`
 - **Suggested file:** `docs/images/03-algorithm.png`
-- **Capture:** all four algorithm cards with Round Robin selected so the quantum field is visible.
+- **Capture:** all five algorithm cards with Round Robin selected so the quantum field is visible.
 
 ### 4. Simulation results
 
@@ -354,5 +357,5 @@ The hand calculations for these values are in [TEST_CASES.md](TEST_CASES.md).
 | [README.md](README.md) | Overview, setup, features, screenshots placeholders |
 | [FUNCTION_GUIDE.md](FUNCTION_GUIDE.md) | Every important Python and JavaScript function |
 | [CODE_WALKTHROUGH.md](CODE_WALKTHROUGH.md) | End-to-end flow, API examples, call hierarchy, Mermaid flowcharts |
-| [VIVA_PREPARATION.md](VIVA_PREPARATION.md) | 78 questions with simple, technically correct answers |
+| [VIVA_PREPARATION.md](VIVA_PREPARATION.md) | 85 questions with simple, technically correct answers |
 | [TEST_CASES.md](TEST_CASES.md) | Hand-verified inputs, outputs, Gantt charts and validation cases |

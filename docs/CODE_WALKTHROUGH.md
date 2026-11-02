@@ -126,6 +126,7 @@ api_schedule
         ├── run_algorithm
         │     ├── fcfs
         │     ├── sjf
+        │     ├── srtf
         │     ├── priority_scheduling
         │     └── round_robin
         ├── calculate_metrics
@@ -230,7 +231,7 @@ Hand check:
 ### 5.1 Browser steps
 
 ```text
-Click "Compare all four"
+Click "Compare all five"
         │
         ▼
 compareAlgorithms
@@ -244,13 +245,13 @@ compareAlgorithms
 
 ### 5.2 Server steps
 
-`api_compare` validates **once**, then loops over `("fcfs", "sjf", "rr", "priority")`. Each call goes through `run_algorithm` → `calculate_metrics`. Only `algorithm_key`, `algorithm`, `quantum` and `metrics` are kept. Finally `find_best_algorithms` selects the winners.
+`api_compare` validates **once**, then loops over `("fcfs", "sjf", "srtf", "rr", "priority")`. Each call goes through `run_algorithm` → `calculate_metrics`. Only `algorithm_key`, `algorithm`, `quantum` and `metrics` are kept. Finally `find_best_algorithms` selects the winners.
 
 ```mermaid
 flowchart LR
     A[compareAlgorithms] --> B[POST /api/compare]
     B --> C[validate_processes + validate_quantum]
-    C --> D[loop over 4 algorithms]
+    C --> D[loop over 5 algorithms]
     D --> E[run_algorithm]
     E --> F[calculate_metrics]
     F --> G[find_best_algorithms]
@@ -284,6 +285,7 @@ flowchart LR
 |---|---:|---:|---:|---:|
 | FCFS | 6.80 | 3.80 | 3.80 | 100.00% |
 | SJF | 6.20 | 3.20 | 3.20 | 100.00% |
+| SRTF | 6.00 | 3.00 | 2.80 | 100.00% |
 | Round Robin (q=2) | 7.60 | 4.60 | 2.40 | 100.00% |
 | Priority | 7.00 | 4.00 | 4.00 | 100.00% |
 
@@ -291,10 +293,10 @@ flowchart LR
 
 ```json
 {
-  "avg_turnaround_time": ["SJF"],
-  "avg_waiting_time": ["SJF"],
+  "avg_turnaround_time": ["SRTF"],
+  "avg_waiting_time": ["SRTF"],
   "avg_response_time": ["Round Robin"],
-  "cpu_utilization": ["FCFS", "SJF", "Round Robin", "Priority"]
+  "cpu_utilization": ["FCFS", "SJF", "SRTF", "Round Robin", "Priority"]
 }
 ```
 
@@ -302,14 +304,39 @@ The page highlights these cells in green and colours the corresponding chart bar
 
 ### 5.4 Why the winners differ
 
-- SJF runs short jobs early, so fewer processes wait behind long jobs → lowest average TAT and WT.
-- Round Robin interrupts long jobs and lets newly arrived processes run sooner → lowest average response time, but more context switching-like rescheduling and a higher TAT.
+- SRTF is preemptive SJF: it responds to short arrivals immediately, so it improves on SJF's TAT and WT for this workload (6.00/3.00 versus 6.20/3.20).
+- Round Robin interrupts long jobs and lets newly arrived processes run sooner → lowest average response time, but more rescheduling and a higher TAT.
 - No idle gaps occur, so every algorithm keeps the CPU busy for all 15 time units → all reach 100% utilization.
-- Ties are preserved by `find_best_algorithms`, which is why all four appear in the utilization list.
+- Ties are preserved by `find_best_algorithms`, which is why all five appear in the utilization list.
 
 ---
 
-## 6. Round Robin step-by-step trace
+## 6. SRTF step-by-step trace
+
+Using the same sample:
+
+| Time | What changes | Decision | Timeline added |
+|---:|---|---|---|
+| 0 | P1 is the only arrival | Run P1 until the next arrival at 1 | P1 0–1 |
+| 1 | P2 arrives with remaining 3; P1 also has 3 left | Ties go to the earlier arrival, so P1 continues | P1 1–2 |
+| 2 | P3 arrives with only 1 unit left | P3 is shorter than P1's 2 units → preempt P1 | P3 2–3 |
+| 3 | P3 finishes; P4 arrives with 2 units | P1 also has 2 left; P1 arrived earlier → P1 continues | P1 3–4 |
+| 4 | P5 arrives; P1 has 1 unit left | P1 is still shortest → run to completion | P1 4–5 |
+| 5 | P1 finishes | P4 (2) is shorter than P2 (3) and P5 (5) | P4 5–7 |
+| 7 | P4 finishes | P2 (3) is shorter than P5 (5) | P2 7–10 |
+| 10 | P2 finishes | Only P5 remains | P5 10–15 |
+
+`merge_timeline` combines P1's two adjacent runs (0–1 and 1–2) into P1 0–2. The final Gantt output is:
+
+```text
+P1 [0–2] → P3 [2–3] → P1 [3–5] → P4 [5–7] → P2 [7–10] → P5 [10–15]
+```
+
+The two tie situations at t=1 and t=3 are the key implementation detail: SRTF compares remaining time first, then arrival time, then PID.
+
+---
+
+## 7. Round Robin step-by-step trace
 
 Using the sample processes and `q = 2`:
 
@@ -331,7 +358,7 @@ The raw timeline ends with P5 12–14 and P5 14–15. `merge_timeline` combines 
 
 ---
 
-## 7. Module interaction
+## 8. Module interaction
 
 ```mermaid
 flowchart TD
@@ -366,7 +393,7 @@ Important: `algorithms.py` never imports `app.py` or Flask. `metrics.py` imports
 
 ---
 
-## 8. Function call hierarchy
+## 9. Function call hierarchy
 
 ### Single run
 
@@ -399,6 +426,10 @@ api_schedule
 │   ├── fcfs
 │   ├── sjf
 │   │   └── _non_preemptive
+│   ├── srtf
+│   │   ├── _record
+│   │   └── _build_result
+│   │       └── merge_timeline
 │   ├── priority_scheduling
 │   │   └── _non_preemptive
 │   └── round_robin
@@ -432,9 +463,9 @@ api_compare
 
 ---
 
-## 9. Flowcharts
+## 10. Flowcharts
 
-### 9.1 Request validation
+### 10.1 Request validation
 
 ```mermaid
 flowchart TD
@@ -453,7 +484,7 @@ flowchart TD
     I --> J[200 JSON result]
 ```
 
-### 9.2 FCFS
+### 10.2 FCFS
 
 ```mermaid
 flowchart TD
@@ -468,7 +499,7 @@ flowchart TD
     F --> B
 ```
 
-### 9.3 SJF and Priority (shared engine)
+### 10.3 SJF and Priority (shared engine)
 
 ```mermaid
 flowchart TD
@@ -487,7 +518,28 @@ flowchart TD
 
 `key` is `(burst, arrival, PID)` for SJF and `(priority, arrival, PID)` for Priority.
 
-### 9.4 Round Robin
+### 10.4 SRTF
+
+```mermaid
+flowchart TD
+    S([Start]) --> A[Sort by arrival, PID]
+    A --> B[remaining = bursts, time = 0]
+    B --> C{All completed?}
+    C -- Yes --> Z([Merge timeline, return])
+    C -- No --> D[available = arrived and unfinished]
+    D --> E{available empty?}
+    E -- Yes --> F[Add Idle block, jump to next arrival]
+    F --> C
+    E -- No --> G[chosen = min remaining, arrival, PID]
+    G --> H[Find next future arrival]
+    H --> I[Run until completion or next arrival]
+    I --> J[Add block, reduce remaining, record completion]
+    J --> C
+```
+
+The running process is only interrupted when a new arrival has a strictly smaller remaining time. Equal remaining times keep the earlier-arrived process on the CPU.
+
+### 10.5 Round Robin
 
 ```mermaid
 flowchart TD
@@ -512,7 +564,7 @@ flowchart TD
     N --> C
 ```
 
-### 9.5 Frontend add/edit flow
+### 10.6 Frontend add/edit flow
 
 ```mermaid
 flowchart TD
@@ -529,7 +581,7 @@ flowchart TD
     I --> J[Show success notice]
 ```
 
-### 9.6 Gantt rendering
+### 10.7 Gantt rendering
 
 ```mermaid
 flowchart TD
@@ -546,7 +598,7 @@ flowchart TD
 
 ---
 
-## 10. Error handling
+## 11. Error handling
 
 | Situation | Where it is detected | What the user sees |
 |---|---|---|
@@ -566,7 +618,7 @@ The server never returns a traceback to the page for expected validation errors.
 
 ---
 
-## 11. Results invalidation
+## 12. Results invalidation
 
 Stale results are a common bug in interactive calculators. This project avoids them by calling `invalidateResults()` whenever the inputs change:
 
@@ -580,7 +632,7 @@ Stale results are a common bug in interactive calculators. This project avoids t
 
 ---
 
-## 12. Statelessness and concurrency
+## 13. Statelessness and concurrency
 
 The server does not store the process list. Every request contains all processes, and every response is computed from scratch. Consequences:
 
@@ -593,23 +645,24 @@ Flask's development server is single-process by default, but even with multiple 
 
 ---
 
-## 13. Complexity
+## 14. Complexity
 
 | Operation | Complexity | Reason |
 |---|---|---|
 | FCFS | `O(n log n)` | Sort by arrival/PID, then one pass. |
 | SJF | `O(n²)` | Up to `n` rounds, each scans the pending list. |
+| SRTF | `O(n²)` | At most `O(n)` events; each event scans the available list. |
 | Priority | `O(n²)` | Same shared engine as SJF. |
 | Round Robin | `O(n + S)` | Each process enters once; `S` is the number of time slices, at most `sum(burst)/quantum + n`. Deque operations are O(1). |
 | `merge_timeline` | `O(B)` | One pass over timeline blocks. |
 | `calculate_metrics` | `O(n + B)` | One pass over processes and timeline. |
 | Gantt rendering | `O(B)` DOM nodes | One block + one axis segment per timeline block. |
 
-For a teaching simulator with at most 100 processes, these costs are negligible. SJF/Priority use the simple scan-based implementation because it is easier to explain than a heap.
+For a teaching simulator with at most 100 processes, these costs are negligible. SJF, SRTF and Priority use the simple scan-based implementation because it is easier to explain than a heap.
 
 ---
 
-## 14. How to debug the running project
+## 15. How to debug the running project
 
 1. **Flask terminal:** every request is logged with method, path and status.
 2. **Browser DevTools → Console:** look for JavaScript errors.
@@ -627,11 +680,11 @@ For a teaching simulator with at most 100 processes, these costs are negligible.
 
 ---
 
-## 15. Test execution flow
+## 16. Test execution flow
 
 `tests/test_algorithms.py` adds the project root to `sys.path`, imports the pure modules and the Flask app, then runs three kinds of tests:
 
-1. **Pure algorithm tests** — call `fcfs`, `sjf`, `round_robin`, etc. directly and compare timelines and metrics.
+1. **Pure algorithm tests** — call `fcfs`, `sjf`, `srtf`, `round_robin`, etc. directly and compare timelines and metrics.
 2. **Metric/comparison tests** — check averages, utilization and tie handling in `find_best_algorithms`.
 3. **API tests** — use `app.test_client()` to POST JSON and assert status codes and error messages.
 
@@ -639,7 +692,7 @@ The actual final run is:
 
 ```text
 $ python -m pytest -q
-45 passed in 0.30s
+51 passed in 1.74s
 ```
 
 Timing varies slightly by machine.

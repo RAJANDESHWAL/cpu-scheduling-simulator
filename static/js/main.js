@@ -593,7 +593,7 @@
             return;
         }
 
-        setButtonBusy(elements.compareButton, true, "Compare all four", "Comparing...");
+        setButtonBusy(elements.compareButton, true, "Compare all five", "Comparing...");
 
         try {
             var data = await postJSON("/api/compare", {
@@ -607,7 +607,7 @@
         } catch (error) {
             showError(elements.compareError, error.message);
         } finally {
-            setButtonBusy(elements.compareButton, false, "Compare all four", "Comparing...");
+            setButtonBusy(elements.compareButton, false, "Compare all five", "Comparing...");
         }
     }
 

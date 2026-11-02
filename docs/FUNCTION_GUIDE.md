@@ -73,7 +73,7 @@ The same dictionary with three extra fields per process (`turnaround_time`, `wai
 {
     processes: [...],          // array of process objects
     editIndex: null,           // null = add mode, otherwise index being edited
-    selectedAlgorithm: "fcfs", // "fcfs" | "sjf" | "rr" | "priority"
+    selectedAlgorithm: "fcfs", // "fcfs" | "sjf" | "srtf" | "rr" | "priority"
     lastResult: null,          // last /api/schedule response
     lastComparison: null       // last /api/compare response
 }
@@ -85,7 +85,7 @@ The same dictionary with three extra fields per process (`turnaround_time`, `wai
 |---|---|---|
 | `pending` | list of process dicts | Processes not yet completed (SJF / Priority). |
 | `ready` | `collections.deque` | Round Robin ready queue; O(1) append/popleft. |
-| `remaining` | dict `pid -> int` | Remaining burst time in Round Robin. |
+| `remaining` | dict `pid -> int` | Remaining burst time in SRTF and Round Robin. |
 | `records` | dict `pid -> result row` | Start/completion times, later ordered into the result list. |
 | `timeline` | list of dicts | Gantt blocks in chronological order. |
 | `colors` | dict `pid -> hex colour` | Stable colour assignment in `gantt.js`. |
@@ -174,7 +174,7 @@ The same dictionary with three extra fields per process (`turnaround_time`, `wai
 
 - **Purpose:** Run one algorithm and return the complete schedule + metrics.
 - **Route:** `POST /api/schedule`
-- **Request fields:** `processes` (required), `algorithm` (required: `fcfs`, `sjf`, `rr`, `priority`), `quantum` (required only for `rr`).
+- **Request fields:** `processes` (required), `algorithm` (required: `fcfs`, `sjf`, `srtf`, `rr`, `priority`), `quantum` (required only for `rr`).
 - **Returns:** HTTP 200 JSON schedule, or HTTP 400 `{"error": ...}`.
 - **Internal working:**
   1. `read_request_body()`.
@@ -190,7 +190,7 @@ The same dictionary with three extra fields per process (`turnaround_time`, `wai
 
 ### `api_compare()`
 
-- **Purpose:** Run all four algorithms on the same process list and quantum.
+- **Purpose:** Run all five algorithms on the same process list and quantum.
 - **Route:** `POST /api/compare`
 - **Request fields:** `processes`, `quantum` (always required because Round Robin is included).
 - **Returns:** HTTP 200 JSON:
@@ -201,14 +201,15 @@ The same dictionary with three extra fields per process (`turnaround_time`, `wai
     "results": [
       {"algorithm_key": "fcfs", "algorithm": "FCFS", "quantum": null, "metrics": { ... }},
       {"algorithm_key": "sjf", "algorithm": "SJF", "quantum": null, "metrics": { ... }},
+      {"algorithm_key": "srtf", "algorithm": "SRTF", "quantum": null, "metrics": { ... }},
       {"algorithm_key": "rr", "algorithm": "Round Robin", "quantum": 2, "metrics": { ... }},
       {"algorithm_key": "priority", "algorithm": "Priority", "quantum": null, "metrics": { ... }}
     ],
     "best": {
-      "avg_turnaround_time": ["SJF"],
-      "avg_waiting_time": ["SJF"],
+      "avg_turnaround_time": ["SRTF"],
+      "avg_waiting_time": ["SRTF"],
       "avg_response_time": ["Round Robin"],
-      "cpu_utilization": ["FCFS", "SJF", "Round Robin", "Priority"]
+      "cpu_utilization": ["FCFS", "SJF", "SRTF", "Round Robin", "Priority"]
     }
   }
   ```
@@ -219,7 +220,7 @@ The same dictionary with three extra fields per process (`turnaround_time`, `wai
 ### Module-level settings
 
 ```python
-ALLOWED_ALGORITHMS = ("fcfs", "sjf", "rr", "priority")
+ALLOWED_ALGORITHMS = ("fcfs", "sjf", "srtf", "rr", "priority")
 MAX_PROCESSES = 100
 PID_PATTERN = re.compile(r"^[A-Za-z0-9_-]{1,16}$")
 ```
@@ -242,7 +243,7 @@ PID_PATTERN = re.compile(r"^[A-Za-z0-9_-]{1,16}$")
 
 ### `merge_timeline(timeline)`
 
-- **Purpose:** Merge adjacent blocks belonging to the same process, as required for Round Robin output.
+- **Purpose:** Merge adjacent blocks belonging to the same process, as required for Round Robin and SRTF output.
 - **Parameters:** `timeline` list of `{"pid", "start", "end"}` blocks.
 - **Returns:** a new merged list; input blocks are not modified.
 - **Internal working:** iterates once. If the previous merged block has the same PID **and** `previous["end"] == block["start"]`, it extends the previous block's `end`; otherwise it appends a copy.
@@ -308,6 +309,27 @@ PID_PATTERN = re.compile(r"^[A-Za-z0-9_-]{1,16}$")
 - **Calls:** `_non_preemptive`.
 - **Called by:** `run_algorithm`.
 
+### `srtf(processes)`
+
+- **Purpose:** Shortest Remaining Time First (preemptive SJF).
+- **Parameters:** validated processes.
+- **Returns:** raw schedule.
+- **Internal working:**
+  1. Sort processes by `(arrival, pid_sort_key(pid))`.
+  2. Build `remaining` (PID → burst), `records`, `timeline`, `completed = 0` and `time = 0`.
+  3. While some process is incomplete:
+     - Build `available` from processes that have arrived and still have work left.
+     - If none are available, insert an `Idle` block and jump to the next arrival.
+     - Choose the minimum by `(remaining[pid], arrival, pid_sort_key(pid))`.
+     - Record the process's first start time if this is its first run.
+     - Find the next future arrival; run until the process finishes or that arrival occurs, whichever is sooner.
+     - Reduce the remaining burst and append a timeline block.
+     - When remaining reaches zero, record completion and increment `completed`.
+  4. Build the result, which merges adjacent blocks of the same process.
+- **Data structures:** `remaining` dict, `records` dict, `timeline` list, `available` list.
+- **Calls:** `pid_sort_key`, `_record`, `_build_result`.
+- **Called by:** `run_algorithm`; tests call it directly.
+
 ### `priority_scheduling(processes)`
 
 - **Purpose:** Non-preemptive Priority Scheduling, lower number = higher priority.
@@ -354,16 +376,16 @@ Nested helper:
 ### `run_algorithm(algorithm_key, processes, quantum=None)`
 
 - **Purpose:** Dispatcher used by Flask and tests.
-- **Parameters:** algorithm key, processes, optional quantum.
+- **Parameters:** algorithm key (`fcfs`, `sjf`, `srtf`, `rr`, `priority`), processes, optional quantum.
 - **Returns:** raw schedule.
-- **Internal working:** lowercases the key and calls `fcfs`, `sjf`, `priority_scheduling` or `round_robin`. For `rr`, raises `ValueError` if `quantum is None`. Raises `ValueError` for an unknown key.
-- **Calls:** `fcfs`, `sjf`, `priority_scheduling`, `round_robin`.
+- **Internal working:** lowercases the key and calls `fcfs`, `sjf`, `srtf`, `priority_scheduling` or `round_robin`. For `rr`, raises `ValueError` if `quantum is None`. Raises `ValueError` for an unknown key.
+- **Calls:** `fcfs`, `sjf`, `srtf`, `priority_scheduling`, `round_robin`.
 - **Called by:** `api_schedule`, `api_compare`, tests.
 
 ### Module-level constants
 
 - `IDLE_PID = "Idle"` — reserved label.
-- `ALGORITHM_LABELS = {"fcfs": "FCFS", "sjf": "SJF", "rr": "Round Robin", "priority": "Priority"}` — display names.
+- `ALGORITHM_LABELS = {"fcfs": "FCFS", "sjf": "SJF", "srtf": "SRTF", "rr": "Round Robin", "priority": "Priority"}` — display names.
 
 ---
 
@@ -547,7 +569,7 @@ All functions are inside an IIFE, so the global namespace only receives DOM even
 ### `selectAlgorithm(algorithmKey)`
 
 - **Purpose:** Update the selected algorithm card and quantum visibility.
-- **Parameters:** `"fcfs" | "sjf" | "rr" | "priority"`.
+- **Parameters:** `"fcfs" | "sjf" | "srtf" | "rr" | "priority"`.
 - **Returns:** none.
 - **Internal working:** stores the selection, toggles the `selected` class on cards, reveals the quantum field only for `rr`, and invalidates old results.
 - **Calls:** `invalidateResults`.
@@ -623,12 +645,12 @@ All functions are inside an IIFE, so the global namespace only receives DOM even
 
 ### `compareAlgorithms()`
 
-- **Purpose:** Run all four algorithms and show the comparison.
+- **Purpose:** Run all five algorithms and show the comparison.
 - **Parameters:** none.
 - **Returns:** none (async).
 - **Internal working:** rejects an empty list, validates the quantum (with a note that comparison includes Round Robin), disables the button, posts to `/api/compare`, stores and renders the result, scrolls to the section, restores the button and shows inline errors.
 - **Calls:** `showError`, `hideNotice`, `readQuantum`, `setButtonBusy`, `postJSON`, `renderComparison`, `scrollToElement`.
-- **Called by:** **Compare all four** button.
+- **Called by:** **Compare all five** button.
 
 ### `setupScrollSpy()`
 
@@ -759,7 +781,7 @@ The module exports `window.GanttChart = { render: render }`.
 - **Purpose:** Draw all three comparison charts.
 - **Parameters:** `/api/compare` results and best map.
 - **Returns:** none.
-- **Internal working:** shows the fallback if Chart.js failed; destroys old charts; builds labels (adding `(q=n)` for Round Robin); calls `makeChart` for waiting, turnaround and response time.
+- **Internal working:** shows the fallback if Chart.js failed; destroys old charts; builds compact labels (`FCFS`, `SJF`, `SRTF`, `RR (q=n)`, `Priority`); calls `makeChart` for waiting, turnaround and response time.
 - **Calls:** `showFallback`, `destroyCharts`, `makeChart`.
 - **Called by:** `main.js → renderComparison` through `window.ComparisonCharts.render`.
 
@@ -784,7 +806,7 @@ Run simulation
         ├── formatNumber / formatCell / escapeHtml
         └── GanttChart.render → buildColorMap / renderLegend
 
-Compare all four
+Compare all five
 └── compareAlgorithms
     ├── readQuantum
     ├── postJSON
@@ -800,6 +822,7 @@ Flask /api/schedule
     ├── run_algorithm
     │   ├── fcfs
     │   ├── sjf → _non_preemptive
+    │   ├── srtf
     │   ├── priority_scheduling → _non_preemptive
     │   └── round_robin → enqueue_arrivals
     │       └── _build_result → merge_timeline

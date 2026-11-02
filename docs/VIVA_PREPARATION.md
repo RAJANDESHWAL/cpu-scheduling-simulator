@@ -1,4 +1,4 @@
-# Viva Preparation — 78 Questions and Answers
+# Viva Preparation — 85 Questions and Answers
 
 Answers are intentionally short and technically correct. Project-specific statements refer to the actual implementation in this repository.
 
@@ -116,11 +116,11 @@ Yes. A timer interrupt at the end of each quantum can preempt the running proces
 
 ### 27. Is this Round Robin the same as preemptive SJF?
 
-No. Round Robin uses a fixed time quantum and a FIFO ready queue. Preemptive SJF (Shortest Remaining Time First) would compare remaining burst times at every arrival. SRTF is not implemented.
+No. Round Robin uses a fixed time quantum and a FIFO ready queue. Preemptive SJF (SRTF) is a different policy that compares remaining burst times at every arrival. Both are implemented here, but their selection rules are independent.
 
 ### 28. Why doesn't this project implement multilevel queues or multilevel feedback queues?
 
-The brief asks for four specific single-core algorithms and prioritises simplicity and explainability. Multilevel queues would add complexity without improving the demonstration of the required concepts.
+The brief asks for five specific single-core algorithms and prioritises simplicity and explainability. Multilevel queues would add complexity without improving the demonstration of the required concepts.
 
 ### 29. What is throughput?
 
@@ -128,7 +128,7 @@ Throughput is the number of processes completed per unit time. This project focu
 
 ### 30. Which algorithm is “best”?
 
-It depends on the metric. On the sample workload, SJF has the best average TAT and WT, while Round Robin has the best average RT. All four reach 100% CPU utilization because there are no idle gaps. There is no single best algorithm for every workload.
+It depends on the metric. On the sample workload, SRTF has the best average TAT and WT, while Round Robin has the best average RT. All five reach 100% CPU utilization because there are no idle gaps. There is no single best algorithm for every workload.
 
 ---
 
@@ -170,11 +170,11 @@ Idle time is time during which the CPU is not executing a process. Utilization m
 
 FCFS completion times are 4, 7, 8, 10, 15. TAT values are 4, 6, 6, 7, 11, so average TAT = 34/5 = **6.80**. WT values are 0, 3, 5, 5, 6, so average WT = 19/5 = **3.80**. Because FCFS is non-preemptive, average RT is also **3.80**.
 
-### 40. Why is Round Robin's average response time better than SJF's on the sample?
+### 40. Why is Round Robin's average response time better than SJF's and SRTF's on the sample?
 
-Round Robin interrupts long jobs, so P2, P3, P4 and P5 get their first CPU turn earlier. Its average RT is 2.40 versus SJF's 3.20. However, the extra interruptions delay completion, so Round Robin's average TAT (7.60) is worse than SJF's (6.20).
+Round Robin interrupts long jobs at a fixed quantum, so P2, P3, P4 and P5 get their first CPU turn earlier. Its average RT is 2.40, versus 2.80 for SRTF and 3.20 for SJF. However, the extra interruptions delay completion, so Round Robin's average TAT (7.60) is worse than SRTF's (6.00) and SJF's (6.20).
 
-### 41. Why do all four algorithms show 100% CPU utilization on the sample?
+### 41. Why do all five algorithms show 100% CPU utilization on the sample?
 
 The sample has no idle gaps: at least one process is ready from time 0 until time 15. Busy time is therefore 15 and elapsed time is 15, giving 100%.
 
@@ -218,9 +218,9 @@ It stores each process's start and completion time while the algorithm runs. At 
 
 `O(n log n)` because of the initial sort by arrival and PID, followed by a single `O(n)` pass.
 
-### 51. What is the time complexity of SJF and Priority?
+### 51. What is the time complexity of SJF, SRTF and Priority?
 
-`O(n²)` in this implementation: each of the `n` rounds scans the pending list to find the available processes and the minimum. A heap could improve this, but the scan is easier to explain.
+SJF and Priority are `O(n²)` in this implementation: each of the `n` rounds scans the pending list to find the available processes and the minimum. SRTF is also `O(n²)`: there are at most `O(n)` arrival/completion events, and each event scans the available list. Heaps could improve these bounds, but the scan is easier to explain.
 
 ### 52. What is the time complexity of Round Robin?
 
@@ -253,7 +253,7 @@ Flask is small and readable. Two JSON endpoints and one HTML route are enough, s
 ### 58. What are the two API endpoints?
 
 - `POST /api/schedule` runs one chosen algorithm.
-- `POST /api/compare` runs all four algorithms on the same list and quantum.
+- `POST /api/compare` runs all five algorithms on the same list and quantum.
 - `GET /` serves the page.
 
 ### 59. How does the frontend send data to Flask?
@@ -302,7 +302,7 @@ No. Each request contains the complete process list, and the server computes a r
 
 ### 70. How was the project tested?
 
-`python -m pytest -q` runs 45 automated tests covering algorithms, edge cases, metrics, comparison winners and API validation. The Flask app was also started and tested over real HTTP, and the UI was driven in headless Chrome to verify loading the sample, running FCFS and Round Robin, comparison charts, validation errors, and add/edit/delete.
+`python -m pytest -q` runs 51 automated tests covering algorithms, edge cases, metrics, comparison winners and API validation. The Flask app was also started and tested over real HTTP, and the UI was driven in headless Chrome to verify loading the sample, running FCFS, SRTF and Round Robin, comparison charts, validation errors, and add/edit/delete.
 
 ---
 
@@ -330,7 +330,7 @@ When `available` is empty, no process has arrived yet. The algorithm jumps to th
 
 ### 76. Why does the comparison reuse the quantum field even when FCFS is selected?
 
-The comparison always includes Round Robin, so it needs a valid quantum. The UI hides the field for non-RR single runs as required, but the value is still used by **Compare all four**. If it is invalid, the page shows a clear comparison error.
+The comparison always includes Round Robin, so it needs a valid quantum. The UI hides the field for non-RR single runs as required, but the value is still used by **Compare all five**. If it is invalid, the page shows a clear comparison error.
 
 ### 77. Why is `Idle` a reserved Process ID?
 
@@ -338,10 +338,42 @@ The Gantt chart and metrics use the string `"Idle"` to identify CPU idle blocks.
 
 ### 78. What would you improve next?
 
-Possible extensions: SRTF and preemptive priority, aging, I/O bursts, multiple cores, CSV import/export, persistence with SQLite, and real measured context-switch overhead. They were deliberately left out to keep the project simple and correct.
+Possible extensions: preemptive priority, aging, I/O bursts, multiple cores, CSV import/export, persistence with SQLite, and real measured context-switch overhead. They were deliberately left out to keep the project simple and correct.
 
 ---
 
-## G. One-line summary for the examiner
+## G. SRTF extension
 
-> This project is a Flask-served, browser-based simulator that runs FCFS, SJF, Round Robin and non-preemptive Priority scheduling in pure Python, returns a merged Gantt timeline and CT/TAT/WT/RT metrics as JSON, and visualises the results with a custom Gantt chart and Chart.js comparison charts. It is a teaching simulation and does not control the real OS scheduler.
+### 79. What is SRTF?
+
+Shortest Remaining Time First is the preemptive version of Shortest Job First. At every arrival it compares the remaining CPU time of all ready processes and runs the one with the smallest remaining time.
+
+### 80. What is the difference between SJF and SRTF?
+
+SJF is non-preemptive: once a process starts, it runs to completion. SRTF is preemptive: a newly arrived process with a shorter remaining time can interrupt the running process immediately. SJF is implemented by `sjf()`; SRTF is implemented by `srtf()`.
+
+### 81. When exactly does SRTF preempt a process?
+
+When a new process arrives and its remaining burst is **strictly smaller** than the running process's remaining burst. If the remaining times are equal, the earlier-arrived process keeps the CPU, so no preemption occurs.
+
+### 82. How does SRTF break ties?
+
+It compares `(remaining_time, arrival_time, PID)`. The smallest remaining time wins; if two processes tie, the earlier arrival wins; if they also tie, the smaller Process ID wins.
+
+### 83. How is SRTF implemented in this project?
+
+`srtf()` keeps a `remaining` dictionary (PID → time left), builds an `available` list of arrived unfinished processes at each event, and selects the minimum key. The chosen process runs only until it finishes or the next arrival occurs, then the choice is repeated. First start times and completion times are recorded, and `_build_result()` merges adjacent blocks.
+
+### 84. Why does SRTF beat SJF on the sample workload?
+
+At t=2, P3 arrives with only 1 unit left and preempts P1. P3 completes immediately at t=3, and P1 resumes. This lowers average TAT from 6.20 to 6.00 and average WT from 3.20 to 3.00 compared with non-preemptive SJF. Round Robin still has the best average response time (2.40).
+
+### 85. What is the difference between SRTF and Round Robin?
+
+SRTF chooses dynamically by remaining time, so short jobs always go first. Round Robin uses a fixed quantum and a FIFO queue, so every ready process eventually gets a turn. SRTF can starve a long job if short jobs keep arriving; Round Robin is fairer in that respect.
+
+---
+
+## H. One-line summary for the examiner
+
+> This project is a Flask-served, browser-based simulator that runs FCFS, SJF, SRTF, Round Robin and non-preemptive Priority scheduling in pure Python, returns a merged Gantt timeline and CT/TAT/WT/RT metrics as JSON, and visualises the results with a custom Gantt chart and Chart.js comparison charts. It is a teaching simulation and does not control the real OS scheduler.
