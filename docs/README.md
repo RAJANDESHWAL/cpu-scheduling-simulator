@@ -4,6 +4,8 @@ A complete, browser-based **CPU Task Scheduler Simulator** built as an Operating
 
 > **Simulation only:** this project demonstrates how CPU scheduling algorithms behave. It does **not** read, control or modify the real scheduler of your operating system.
 
+> **Printable guide:** [CPU_Scheduler_Project_Workflow.pdf](CPU_Scheduler_Project_Workflow.pdf) explains the workflow, scheduling logic, all six algorithms, inputs/outputs, formulas and a worked example.
+
 ---
 
 ## Overview
@@ -120,7 +122,9 @@ cpu-scheduler-simulator/
     ├── FUNCTION_GUIDE.md       Function-by-function reference
     ├── CODE_WALKTHROUGH.md     Execution flow, API examples, call hierarchy, flowcharts
     ├── VIVA_PREPARATION.md     93 viva questions and answers
-    └── TEST_CASES.md           Hand-verified test cases and expected outputs
+    ├── TEST_CASES.md           Hand-verified test cases and expected outputs
+    ├── CPU_Scheduler_Project_Workflow.pdf    Printable workflow and algorithm guide
+    └── CPU_Scheduler_Project_Workflow.html   Editable source for the PDF
 ```
 
 ### Why this structure?
@@ -362,3 +366,4 @@ The hand calculations for these values are in [TEST_CASES.md](TEST_CASES.md).
 | [CODE_WALKTHROUGH.md](CODE_WALKTHROUGH.md) | End-to-end flow, API examples, call hierarchy, Mermaid flowcharts |
 | [VIVA_PREPARATION.md](VIVA_PREPARATION.md) | 93 questions with simple, technically correct answers |
 | [TEST_CASES.md](TEST_CASES.md) | Hand-verified inputs, outputs, Gantt charts and validation cases |
+| [CPU_Scheduler_Project_Workflow.pdf](CPU_Scheduler_Project_Workflow.pdf) | Printable 11-page workflow, algorithm and formula guide |

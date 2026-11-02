@@ -1,0 +1,1123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>CPU Scheduler Lab — Project Workflow</title>
+<style>
+    @page {
+        size: A4;
+        margin: 17mm 16mm 17mm 16mm;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+        margin: 0;
+        padding: 0;
+        background: #ffffff;
+        color: #172033;
+        font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+        font-size: 10.3pt;
+        line-height: 1.48;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    h1, h2, h3, h4, p { margin-top: 0; }
+    h1, h2, h3, h4 { color: #102033; line-height: 1.18; }
+    h2 { font-size: 23pt; letter-spacing: -0.025em; margin-bottom: 6px; }
+    h3 { font-size: 14.5pt; letter-spacing: -0.015em; margin-bottom: 5px; }
+    h4 { font-size: 9.3pt; letter-spacing: 0.04em; text-transform: uppercase; color: #0f766e; margin: 0 0 3px; }
+    p { margin-bottom: 8px; }
+    strong { color: #102033; }
+    code, pre { font-family: "Cascadia Code", Consolas, "Courier New", monospace; }
+
+    .muted { color: #64748b; }
+    .small { font-size: 8.7pt; }
+    .tiny { font-size: 7.8pt; line-height: 1.4; }
+    .teal { color: #0f766e; }
+    .amber { color: #b45309; }
+    .nowrap { white-space: nowrap; }
+
+    .new-page { break-before: page; }
+    .avoid { break-inside: avoid; }
+    .section-head {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 18px;
+        border-bottom: 2px solid #0f766e;
+        padding-bottom: 9px;
+        margin-bottom: 18px;
+    }
+    .section-head .left { max-width: 132mm; }
+    .section-kicker {
+        display: block;
+        color: #0f766e;
+        font-size: 7.8pt;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        margin-bottom: 5px;
+    }
+    .section-head p { margin: 0; color: #64748b; font-size: 9.3pt; }
+    .section-number {
+        color: #cbd5e1;
+        font-size: 30pt;
+        font-weight: 800;
+        letter-spacing: -0.04em;
+        line-height: 1;
+        white-space: nowrap;
+    }
+
+    /* Cover */
+    .cover {
+        height: 248mm;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        padding: 2mm 0 0;
+    }
+    .cover-top {
+        border-top: 5px solid #0f766e;
+        padding-top: 14px;
+    }
+    .cover-eyebrow {
+        color: #0f766e;
+        font-size: 8.6pt;
+        font-weight: 800;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        margin-bottom: 28px;
+    }
+    .cover h1 {
+        font-size: 46pt;
+        letter-spacing: -0.045em;
+        line-height: 0.98;
+        margin-bottom: 12px;
+    }
+    .cover .subtitle {
+        font-size: 21pt;
+        font-weight: 300;
+        letter-spacing: -0.02em;
+        color: #334155;
+        margin-bottom: 18px;
+    }
+    .cover .intro {
+        max-width: 142mm;
+        color: #475569;
+        font-size: 11.6pt;
+        line-height: 1.55;
+    }
+    .cover-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 20px; }
+    .chip {
+        display: inline-block;
+        padding: 4px 9px;
+        border: 1px solid #99f6e4;
+        border-radius: 999px;
+        background: #f0fdfa;
+        color: #115e59;
+        font-size: 8pt;
+        font-weight: 700;
+    }
+    .cover-mid { margin-top: 26mm; }
+    .cover-meta {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1px;
+        border: 1px solid #e2e8f0;
+        background: #e2e8f0;
+        margin-top: 15mm;
+    }
+    .cover-meta div { background: #ffffff; padding: 10px 11px; }
+    .cover-meta span {
+        display: block;
+        color: #64748b;
+        font-size: 7.6pt;
+        font-weight: 800;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        margin-bottom: 3px;
+    }
+    .cover-meta strong { font-size: 12pt; }
+    .disclaimer {
+        margin-top: 12mm;
+        padding: 9px 12px;
+        border-left: 4px solid #d97706;
+        background: #fffbeb;
+        color: #713f12;
+        font-size: 9pt;
+    }
+    .cover-bottom {
+        border-top: 1px solid #e2e8f0;
+        padding-top: 10px;
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+        color: #64748b;
+        font-size: 8.2pt;
+    }
+
+    /* Contents */
+    .toc {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0 18px;
+        margin-top: 8px;
+    }
+    .toc-item {
+        display: flex;
+        gap: 10px;
+        padding: 8px 0;
+        border-bottom: 1px solid #e8edf2;
+        break-inside: avoid;
+    }
+    .toc-num { color: #0f766e; font-weight: 800; font-size: 9pt; width: 18px; flex-shrink: 0; }
+    .toc-item strong { display: block; font-size: 10pt; }
+    .toc-item span { display: block; color: #64748b; font-size: 8.2pt; line-height: 1.35; }
+    .callout {
+        margin: 13px 0;
+        padding: 10px 12px;
+        border: 1px solid #99f6e4;
+        border-radius: 6px;
+        background: #f0fdfa;
+        color: #115e59;
+        font-size: 9pt;
+    }
+    .callout strong { color: #115e59; }
+    .callout.amber {
+        border-color: #fde68a;
+        background: #fffbeb;
+        color: #713f12;
+    }
+    .callout.amber strong { color: #713f12; }
+
+    .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 12px 0 16px; }
+    .stat {
+        border: 1px solid #e2e8f0;
+        border-top: 3px solid #5eead4;
+        border-radius: 6px;
+        padding: 8px 9px;
+        background: #ffffff;
+    }
+    .stat strong { display: block; font-size: 18pt; letter-spacing: -0.03em; line-height: 1.05; }
+    .stat span { color: #64748b; font-size: 7.6pt; text-transform: uppercase; letter-spacing: 0.06em; }
+    .stat.accent { border-top-color: #0f766e; }
+
+    /* Pipelines */
+    .pipeline { margin: 8px 0 10px; }
+    .pipe-row {
+        display: grid;
+        grid-template-columns: 10mm 1fr 34mm;
+        gap: 4mm;
+        align-items: center;
+        padding: 6px 0;
+        border-bottom: 1px solid #edf1f5;
+        break-inside: avoid;
+    }
+    .pipe-row:last-child { border-bottom: none; }
+    .pipe-num {
+        width: 8mm;
+        height: 8mm;
+        border-radius: 50%;
+        background: #ccfbf1;
+        color: #115e59;
+        font-weight: 800;
+        font-size: 8.5pt;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .pipe-row strong { display: block; font-size: 9.5pt; }
+    .pipe-row p { margin: 0; color: #64748b; font-size: 8.2pt; }
+    .pipe-tag {
+        justify-self: end;
+        padding: 3px 7px;
+        border-radius: 999px;
+        background: #f1f5f9;
+        color: #475569;
+        font-size: 7pt;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+    }
+
+    .layers {
+        display: grid;
+        grid-template-columns: 1fr 16mm 1fr 16mm 1fr;
+        gap: 0;
+        align-items: stretch;
+        margin: 14px 0;
+        break-inside: avoid;
+    }
+    .layer {
+        border: 1px solid #dbe3e8;
+        border-radius: 7px;
+        padding: 10px 11px;
+        background: #fbfdfd;
+    }
+    .layer strong { display: block; font-size: 10pt; margin-bottom: 3px; }
+    .layer span { color: #64748b; font-size: 8pt; line-height: 1.35; }
+    .layer-arrow {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #0f766e;
+        font-size: 14pt;
+        font-weight: 700;
+    }
+
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .three-col { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .panel {
+        border: 1px solid #e2e8f0;
+        border-radius: 7px;
+        padding: 10px 12px;
+        background: #ffffff;
+        break-inside: avoid;
+    }
+    .panel h4 { margin-bottom: 5px; }
+    .panel p:last-child, .panel ul:last-child { margin-bottom: 0; }
+    .panel ul { margin: 4px 0 0 15px; padding: 0; }
+    .panel li { margin-bottom: 3px; }
+
+    /* Tables */
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 8px 0 11px;
+        font-size: 8.6pt;
+        break-inside: avoid;
+    }
+    th {
+        background: #f0fdfa;
+        color: #115e59;
+        font-size: 7.5pt;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        text-align: left;
+        padding: 6px 7px;
+        border: 1px solid #dbe3e8;
+    }
+    td { padding: 5px 7px; border: 1px solid #e2e8f0; vertical-align: top; }
+    tbody tr:nth-child(even) td { background: #fbfcfd; }
+    td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+    .best { background: #dcfce7 !important; color: #166534; font-weight: 700; }
+    .mono { font-family: "Cascadia Code", Consolas, monospace; font-size: 8pt; }
+
+    /* Algorithms */
+    .algo-block {
+        border: 1px solid #dbe3e8;
+        border-radius: 8px;
+        padding: 10px 12px;
+        margin-bottom: 10px;
+        background: #ffffff;
+        break-inside: avoid;
+    }
+    .algo-head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 6px;
+    }
+    .algo-num {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 22px;
+        height: 22px;
+        border-radius: 6px;
+        background: #ccfbf1;
+        color: #115e59;
+        font-size: 8pt;
+        font-weight: 800;
+    }
+    .algo-head h3 { margin: 0; font-size: 13pt; }
+    .algo-type {
+        margin-left: auto;
+        padding: 3px 7px;
+        border-radius: 999px;
+        background: #fef3c7;
+        color: #92400e;
+        font-size: 6.8pt;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        white-space: nowrap;
+    }
+    .algo-type.nonpreemptive { background: #f1f5f9; color: #475569; }
+    .algo-block p { font-size: 9pt; }
+    .algo-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 6px 0; }
+    .algo-meta h4 { margin-bottom: 2px; }
+    .algo-meta p { margin: 0; color: #475569; font-size: 8.3pt; }
+    pre {
+        margin: 6px 0;
+        padding: 7px 9px;
+        border-left: 3px solid #5eead4;
+        background: #f8fafc;
+        color: #334155;
+        font-size: 7.6pt;
+        line-height: 1.45;
+        white-space: pre-wrap;
+        break-inside: avoid;
+    }
+    .tradeoff { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 5px; }
+    .tradeoff div { padding: 5px 7px; border-radius: 4px; font-size: 7.9pt; }
+    .tradeoff .plus { background: #f0fdf4; color: #166534; }
+    .tradeoff .minus { background: #fff7ed; color: #9a3412; }
+
+    /* Gantt */
+    .schedule { margin-bottom: 8px; break-inside: avoid; }
+    .schedule-title { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 3px; }
+    .schedule-title strong { font-size: 9pt; }
+    .schedule-title span { color: #64748b; font-size: 7.8pt; }
+    .gantt {
+        display: flex;
+        height: 20px;
+        border: 1px solid #cbd5e1;
+        border-radius: 4px;
+        overflow: hidden;
+        background: #f8fafc;
+    }
+    .gantt div {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #ffffff;
+        font-size: 6.7pt;
+        font-weight: 700;
+        border-right: 1px solid #ffffff;
+        flex-basis: 0;
+        min-width: 12px;
+        overflow: hidden;
+        white-space: nowrap;
+    }
+    .gantt div:last-child { border-right: none; }
+    .p1 { background: #0f766e; }
+    .p2 { background: #1d4ed8; }
+    .p3 { background: #b45309; }
+    .p4 { background: #6d28d9; }
+    .p5 { background: #be123c; }
+    .idle { background: repeating-linear-gradient(45deg, #e2e8f0, #e2e8f0 4px, #f8fafc 4px, #f8fafc 8px) !important; color: #475569 !important; }
+    .timeline-text {
+        margin-top: 2px;
+        color: #64748b;
+        font-family: "Cascadia Code", Consolas, monospace;
+        font-size: 6.9pt;
+        line-height: 1.35;
+    }
+
+    /* Misc */
+    .formula-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 8px 0 12px; }
+    .formula {
+        border: 1px solid #dbe3e8;
+        border-radius: 6px;
+        padding: 8px 10px;
+        background: #fbfdfd;
+        break-inside: avoid;
+    }
+    .formula strong { display: block; color: #0f766e; font-size: 8pt; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 2px; }
+    .formula code { font-size: 10pt; color: #102033; }
+    .formula span { display: block; color: #64748b; font-size: 7.8pt; margin-top: 3px; }
+    .legend { display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 4px 0 8px; }
+    .legend span { display: inline-flex; align-items: center; gap: 4px; color: #64748b; font-size: 7.6pt; }
+    .dot { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
+    .footer-note {
+        margin-top: 12px;
+        padding-top: 7px;
+        border-top: 1px solid #e2e8f0;
+        color: #94a3b8;
+        font-size: 7.4pt;
+    }
+    .source-list { margin: 5px 0 0 15px; padding: 0; color: #475569; font-size: 8.4pt; }
+    .source-list li { margin-bottom: 2px; }
+    .keep-together { break-inside: avoid; }
+</style>
+</head>
+<body>
+
+<!-- ============================== COVER ============================== -->
+<section class="cover">
+    <div>
+        <div class="cover-top">
+            <div class="cover-eyebrow">Operating Systems Mini Project · Single-Core CPU Scheduling</div>
+            <h1>CPU Scheduler Lab</h1>
+            <div class="subtitle">Project Workflow &amp; Algorithm Guide</div>
+            <p class="intro">
+                From a list of processes to a Gantt chart, per-process metrics and an algorithm comparison.
+                This document explains what the project does, how the scheduler assigns the CPU, what each
+                algorithm selects, the inputs and outputs, and every metric formula used in the code.
+            </p>
+            <div class="cover-chips">
+                <span class="chip">Flask</span>
+                <span class="chip">Python 3</span>
+                <span class="chip">HTML / CSS / JavaScript</span>
+                <span class="chip">Chart.js</span>
+                <span class="chip">6 algorithms</span>
+            </div>
+        </div>
+
+        <div class="cover-mid">
+            <div class="cover-meta">
+                <div><span>Project type</span><strong>Browser simulator</strong></div>
+                <div><span>Algorithms</span><strong>Six</strong></div>
+                <div><span>Scheduling scope</span><strong>Single core</strong></div>
+                <div><span>Automated tests</span><strong>57 passing</strong></div>
+            </div>
+            <div class="disclaimer">
+                <strong>Simulation only.</strong> This project demonstrates CPU scheduling algorithms.
+                It does not read, control or modify the real scheduler of your operating system.
+            </div>
+        </div>
+    </div>
+
+    <div class="cover-bottom">
+        <span>Prepared for the Operating Systems mini-project viva</span>
+        <span>November 2026</span>
+    </div>
+</section>
+
+<!-- ============================ CONTENTS ============================= -->
+<section class="new-page">
+    <div class="section-head">
+        <div class="left">
+            <span class="section-kicker">Contents &amp; overview</span>
+            <h2>What this project does</h2>
+            <p>A teaching simulator for the short-term CPU scheduler.</p>
+        </div>
+        <div class="section-number">01</div>
+    </div>
+
+    <p>
+        The project is a complete browser-based CPU scheduling simulator. The user builds a process list,
+        selects one of six algorithms, sets a time quantum for Round Robin, and runs the simulation.
+        A Flask backend validates the request, executes the chosen algorithm in pure Python, calculates
+        the performance metrics, and returns JSON. The browser then draws a custom Gantt chart, a
+        per-process metrics table, summary cards and—on request—a six-algorithm comparison with Chart.js
+        bar charts.
+    </p>
+
+    <div class="stat-grid">
+        <div class="stat"><strong>6</strong><span>algorithms</span></div>
+        <div class="stat"><strong>1</strong><span>CPU core</span></div>
+        <div class="stat"><strong>57</strong><span>tests passing</span></div>
+        <div class="stat accent"><strong>8</strong><span>workflow steps</span></div>
+    </div>
+
+    <div class="two-col">
+        <div class="panel">
+            <h4>What the user can do</h4>
+            <ul>
+                <li>Add, edit and delete processes with PID, arrival, burst and priority.</li>
+                <li>Load a five-process sample or clear the list.</li>
+                <li>Run any single algorithm and inspect the schedule.</li>
+                <li>Compare all six algorithms on identical inputs.</li>
+                <li>Read CT, TAT, WT, RT, averages and CPU utilization.</li>
+                <li>Hover or focus Gantt blocks for start and end times.</li>
+            </ul>
+        </div>
+        <div class="panel">
+            <h4>What the system guarantees</h4>
+            <ul>
+                <li>Consistent tie-breaking: primary key, arrival, then PID.</li>
+                <li>Simultaneous arrivals become available together.</li>
+                <li>Idle CPU time is shown as an <span class="mono">Idle</span> block.</li>
+                <li>Round Robin follows the arrival-at-expiry queue rule.</li>
+                <li>Every algorithm uses the same metric formulas.</li>
+                <li>Invalid input is rejected with a clear inline message.</li>
+            </ul>
+        </div>
+    </div>
+
+    <h3 style="margin-top:16px;">Contents</h3>
+    <div class="toc">
+        <div class="toc-item"><div class="toc-num">01</div><div><strong>Overview</strong><span>Purpose, scope and the teaching model</span></div></div>
+        <div class="toc-item"><div class="toc-num">02</div><div><strong>End-to-end workflow</strong><span>Browser, Flask, scheduling engine and rendering</span></div></div>
+        <div class="toc-item"><div class="toc-num">03</div><div><strong>How tasks are assigned</strong><span>Ready set, decision points, tie-breaks and idle time</span></div></div>
+        <div class="toc-item"><div class="toc-num">04</div><div><strong>The six algorithms</strong><span>Selection rules, pseudocode and trade-offs</span></div></div>
+        <div class="toc-item"><div class="toc-num">05</div><div><strong>Inputs and validation</strong><span>Process fields, quantum, accepted ranges and errors</span></div></div>
+        <div class="toc-item"><div class="toc-num">06</div><div><strong>Outputs and formulas</strong><span>Gantt data, per-process rows, CT/TAT/WT/RT/utilization</span></div></div>
+        <div class="toc-item"><div class="toc-num">07</div><div><strong>Worked example</strong><span>Five processes, six schedules and a comparison</span></div></div>
+        <div class="toc-item"><div class="toc-num">08</div><div><strong>Implementation &amp; verification</strong><span>Files, API, tests, limitations and viva summary</span></div></div>
+    </div>
+
+    <div class="callout">
+        <strong>The central idea:</strong> a scheduling algorithm is a repeated choice. At each decision point,
+        the project builds the set of arrived and unfinished processes, applies the algorithm's key, runs the
+        winner, records the interval, and repeats. All metrics are derived from those intervals and completion times.
+    </div>
+</section>
+
+<!-- ============================== WORKFLOW ============================ -->
+<section class="new-page">
+    <div class="section-head">
+        <div class="left">
+            <span class="section-kicker">Workflow</span>
+            <h2>From process list to Gantt chart</h2>
+            <p>The browser never calculates the schedule; Flask and the pure-Python scheduler do.</p>
+        </div>
+        <div class="section-number">02</div>
+    </div>
+
+    <div class="pipeline">
+        <div class="pipe-row"><div class="pipe-num">1</div><div><strong>Build the process list</strong><p>Add PID, arrival time, burst time and priority. Edit or delete rows at any time.</p></div><div class="pipe-tag">Browser</div></div>
+        <div class="pipe-row"><div class="pipe-num">2</div><div><strong>Choose an algorithm and quantum</strong><p>Select one of six policies. The quantum field appears only for Round Robin.</p></div><div class="pipe-tag">Browser</div></div>
+        <div class="pipe-row"><div class="pipe-num">3</div><div><strong>Run simulation</strong><p>The full list is sent as JSON to <span class="mono">/api/schedule</span> or <span class="mono">/api/compare</span>.</p></div><div class="pipe-tag">HTTP</div></div>
+        <div class="pipe-row"><div class="pipe-num">4</div><div><strong>Validate the request</strong><p>Flask checks fields, ranges, duplicate IDs, reserved <span class="mono">Idle</span>, quantum and algorithm key.</p></div><div class="pipe-tag">Flask</div></div>
+        <div class="pipe-row"><div class="pipe-num">5</div><div><strong>Schedule the processes</strong><p>The chosen algorithm produces timer intervals and first-start/completion times.</p></div><div class="pipe-tag">Pure Python</div></div>
+        <div class="pipe-row"><div class="pipe-num">6</div><div><strong>Calculate metrics</strong><p>CT, TAT, WT, RT, averages and CPU utilization are derived in one shared module.</p></div><div class="pipe-tag">Pure Python</div></div>
+        <div class="pipe-row"><div class="pipe-num">7</div><div><strong>Return JSON</strong><p>The response contains the timeline, process rows and metrics; comparison adds every algorithm and the winners.</p></div><div class="pipe-tag">Flask</div></div>
+        <div class="pipe-row"><div class="pipe-num">8</div><div><strong>Render the result</strong><p><span class="mono">gantt.js</span> draws the timeline; <span class="mono">charts.js</span> draws the comparison bars.</p></div><div class="pipe-tag">Browser</div></div>
+    </div>
+
+    <div class="layers avoid">
+        <div class="layer"><strong>Presentation</strong><span>HTML structure, responsive CSS, accessible forms, tables and empty states.</span></div>
+        <div class="layer-arrow">→</div>
+        <div class="layer"><strong>Application</strong><span>Flask routes, JSON validation, error responses and the pure-Python scheduler.</span></div>
+        <div class="layer-arrow">→</div>
+        <div class="layer"><strong>Visualisation</strong><span>Custom Gantt blocks plus Chart.js bar charts for average WT, TAT and RT.</span></div>
+    </div>
+
+    <div class="two-col">
+        <div class="panel">
+            <h4>Single run request</h4>
+            <pre>POST /api/schedule
+{
+  "processes": [
+    {"pid": "P1", "arrival": 0,
+     "burst": 4, "priority": 2}
+  ],
+  "algorithm": "srtf",
+  "quantum": null
+}</pre>
+            <p class="tiny muted">The quantum is required only for <span class="mono">rr</span>. SRTF/Priority use only the process fields.</p>
+        </div>
+        <div class="panel">
+            <h4>What comes back</h4>
+            <ul class="source-list">
+                <li><span class="mono">timeline</span> — ordered Gantt blocks, including Idle.</li>
+                <li><span class="mono">processes</span> — start, completion and metrics per process.</li>
+                <li><span class="mono">metrics</span> — averages, utilization, busy/idle/total.</li>
+                <li><span class="mono">algorithm</span> — display name and quantum.</li>
+            </ul>
+            <p class="tiny muted">Comparison additionally returns <span class="mono">results</span> for all six and a <span class="mono">best</span> map.</p>
+        </div>
+    </div>
+
+    <div class="callout">
+        <strong>Stateless design:</strong> the server stores nothing. Every request carries the entire process list,
+        so two browser tabs cannot interfere and refreshing the page simply clears the local list.
+    </div>
+</section>
+
+<!-- ========================= HOW TASKS ARE ASSIGNED ================== -->
+<section class="new-page">
+    <div class="section-head">
+        <div class="left">
+            <span class="section-kicker">Scheduling logic</span>
+            <h2>How the CPU assigns tasks</h2>
+            <p>This is a simulation of a short-term scheduler, not the real OS scheduler.</p>
+        </div>
+        <div class="section-number">03</div>
+    </div>
+
+    <p>
+        Each process record in the browser is a simplified PCB: PID, arrival time, burst time, priority and
+        the derived scheduling fields. The scheduler keeps a <strong>ready set</strong> of processes that have
+        arrived and still need CPU time. At each decision point it selects one process, runs it for an interval,
+        records a Gantt block, and updates the remaining work.
+    </p>
+
+    <div class="two-col">
+        <div class="panel">
+            <h4>Decision loop</h4>
+            <div class="pipeline" style="margin:0;">
+                <div class="pipe-row" style="grid-template-columns:8mm 1fr;"><div class="pipe-num">1</div><div><strong>Build available set</strong><p><span class="mono">arrival ≤ now</span> and remaining burst &gt; 0.</p></div></div>
+                <div class="pipe-row" style="grid-template-columns:8mm 1fr;"><div class="pipe-num">2</div><div><strong>Choose by policy</strong><p>Apply the algorithm's primary key, then arrival, then PID.</p></div></div>
+                <div class="pipe-row" style="grid-template-columns:8mm 1fr;"><div class="pipe-num">3</div><div><strong>Run an interval</strong><p>To completion, to the next arrival, or for one quantum.</p></div></div>
+                <div class="pipe-row" style="grid-template-columns:8mm 1fr;"><div class="pipe-num">4</div><div><strong>Record and update</strong><p>Append a block, reduce remaining time, record completion.</p></div></div>
+                <div class="pipe-row" style="grid-template-columns:8mm 1fr;"><div class="pipe-num">5</div><div><strong>Repeat or idle</strong><p>If nobody is ready, add an Idle block and jump to the next arrival.</p></div></div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <h4>When does the scheduler choose?</h4>
+            <table style="margin:0;">
+                <thead><tr><th>Algorithm style</th><th>Decision points</th></tr></thead>
+                <tbody>
+                    <tr><td><strong>Non-preemptive</strong><br><span class="tiny muted">FCFS, SJF, Priority</span></td><td>When the CPU becomes idle: at the start, or after a process completes.</td></tr>
+                    <tr><td><strong>Preemptive</strong><br><span class="tiny muted">SRTF, Preemptive Priority</span></td><td>When a new process arrives, plus when the CPU becomes idle.</td></tr>
+                    <tr><td><strong>Round Robin</strong></td><td>When a quantum expires, when the CPU becomes idle, and when a new arrival enters the ready queue.</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <h3 style="margin-top:16px;">Selection keys and tie-breaking</h3>
+    <table>
+        <thead><tr><th>Algorithm</th><th>Primary key</th><th>Second</th><th>Final tie-break</th><th>Preemptive?</th></tr></thead>
+        <tbody>
+            <tr><td><strong>FCFS</strong></td><td>Arrival time</td><td>Process ID</td><td>—</td><td>No</td></tr>
+            <tr><td><strong>SJF</strong></td><td>Burst time</td><td>Arrival time</td><td>Process ID</td><td>No</td></tr>
+            <tr><td><strong>SRTF</strong></td><td>Remaining time</td><td>Arrival time</td><td>Process ID</td><td>Yes</td></tr>
+            <tr><td><strong>Round Robin</strong></td><td>Queue order</td><td>Arrival/PID on entry</td><td>—</td><td>Yes (quantum)</td></tr>
+            <tr><td><strong>Priority</strong></td><td>Priority number</td><td>Arrival time</td><td>Process ID</td><td>No</td></tr>
+            <tr><td><strong>Preemptive Priority</strong></td><td>Priority number</td><td>Arrival time</td><td>Process ID</td><td>Yes</td></tr>
+        </tbody>
+    </table>
+
+    <div class="callout amber">
+        <strong>Lower priority number = higher priority.</strong> A new process preempts only when its priority
+        number is <em>strictly smaller</em> than the running process's priority. Equal priority keeps the earlier
+        arrival on the CPU. Round Robin arriving exactly at quantum expiry enters the ready queue before the
+        preempted process is re-added.
+    </div>
+
+    <div class="three-col">
+        <div class="panel"><h4>Simultaneous arrivals</h4><p class="tiny">All processes with the same arrival time are available together and ordered by the same tie-breaking keys.</p></div>
+        <div class="panel"><h4>Idle CPU</h4><p class="tiny">If the available set is empty, an <span class="mono">Idle</span> block is added and time jumps to the next arrival.</p></div>
+        <div class="panel"><h4>Gantt merging</h4><p class="tiny">Adjacent blocks of the same process are merged, especially after Round Robin slices or no-preemption arrivals.</p></div>
+    </div>
+</section>
+
+<!-- ============================ ALGORITHMS ============================ -->
+<section class="new-page">
+    <div class="section-head">
+        <div class="left">
+            <span class="section-kicker">Algorithm reference</span>
+            <h2>The six scheduling algorithms</h2>
+            <p>Same process data, six different CPU assignment policies.</p>
+        </div>
+        <div class="section-number">04</div>
+    </div>
+
+    <table>
+        <thead><tr><th>Algorithm</th><th>Best known for</th><th>Main risk</th><th>Key idea</th></tr></thead>
+        <tbody>
+            <tr><td><strong>FCFS</strong></td><td>Simplicity and fairness in arrival order</td><td>Convoy effect</td><td>Earliest arrival runs to completion.</td></tr>
+            <tr><td><strong>SJF</strong></td><td>Low average waiting/turnaround in batches</td><td>Starvation; burst unknown in practice</td><td>Shortest arrived job runs to completion.</td></tr>
+            <tr><td><strong>SRTF</strong></td><td>Short-job response and turnaround</td><td>Starvation; more switching</td><td>Shortest remaining time can preempt.</td></tr>
+            <tr><td><strong>Round Robin</strong></td><td>Fairness and response time</td><td>More context switches; quantum tuning</td><td>Fixed quantum, FIFO ready queue.</td></tr>
+            <tr><td><strong>Priority</strong></td><td>Important processes first</td><td>Starvation of low priority</td><td>Smallest priority number runs to completion.</td></tr>
+            <tr><td><strong>Preemptive Priority</strong></td><td>Immediate response to critical arrivals</td><td>Starvation; more switching</td><td>Higher-priority arrival can preempt.</td></tr>
+        </tbody>
+    </table>
+
+    <div class="algo-block">
+        <div class="algo-head"><span class="algo-num">01</span><h3>First Come, First Served (FCFS)</h3><span class="algo-type nonpreemptive">Non-preemptive</span></div>
+        <p>Processes are ordered by arrival time. The earliest arrival runs until it finishes. If two processes arrive together, the smaller Process ID runs first. This is the simplest policy and the baseline for comparison.</p>
+        <div class="algo-meta">
+            <div><h4>Selection</h4><p>Minimum <span class="mono">(arrival, PID)</span>; no later arrival can interrupt.</p></div>
+            <div><h4>Tie-break</h4><p>Earlier arrival, then smaller PID (natural order: P2 before P10).</p></div>
+        </div>
+        <pre>sort processes by (arrival, PID)
+time = 0
+for each process:
+    if time &lt; arrival: add Idle block; time = arrival
+    run process from time to time + burst
+    record start and completion</pre>
+        <div class="tradeoff"><div class="plus"><strong>+</strong> Trivial to implement; no starvation; low overhead.</div><div class="minus"><strong>−</strong> Convoy effect: short jobs wait behind one long job.</div></div>
+    </div>
+
+    <div class="algo-block">
+        <div class="algo-head"><span class="algo-num">02</span><h3>Shortest Job First (SJF)</h3><span class="algo-type nonpreemptive">Non-preemptive</span></div>
+        <p>Among the processes that have already arrived, the smallest burst time runs next and completes. SJF usually lowers average waiting and turnaround time because short jobs do not wait behind long ones.</p>
+        <div class="algo-meta">
+            <div><h4>Selection</h4><p>Minimum <span class="mono">(burst, arrival, PID)</span> among available processes.</p></div>
+            <div><h4>Tie-break</h4><p>Equal burst → earlier arrival → smaller PID.</p></div>
+        </div>
+        <pre>pending = all processes; time = 0
+while pending:
+    available = {p | p.arrival &lt;= time}
+    if available is empty: idle to next arrival
+    chosen = min(available, key = (burst, arrival, PID))
+    run chosen to completion; record it</pre>
+        <div class="tradeoff"><div class="plus"><strong>+</strong> Good average TAT/WT for known batch workloads.</div><div class="minus"><strong>−</strong> Long jobs can starve; real burst times are estimates.</div></div>
+    </div>
+</section>
+
+<section class="new-page">
+    <div class="section-head">
+        <div class="left">
+            <span class="section-kicker">Algorithm reference · part 2</span>
+            <h2>SRTF and Round Robin</h2>
+            <p>Shortest-remaining-time preemption versus fixed time slicing.</p>
+        </div>
+        <div class="section-number">04</div>
+    </div>
+
+    <div class="algo-block">
+        <div class="algo-head"><span class="algo-num">03</span><h3>Shortest Remaining Time First (SRTF)</h3><span class="algo-type">Preemptive</span></div>
+        <p>SRTF is preemptive SJF. At every arrival it compares the remaining burst times of all available processes. A new process with a strictly shorter remaining time preempts the running process immediately.</p>
+        <div class="algo-meta">
+            <div><h4>Selection</h4><p>Minimum <span class="mono">(remaining, arrival, PID)</span>; re-evaluated at every arrival.</p></div>
+            <div><h4>Tie-break</h4><p>Equal remaining → earlier arrival → smaller PID. Equal remaining does not preempt.</p></div>
+        </div>
+        <pre>remaining = burst for every process; time = 0
+while unfinished:
+    available = {p | arrived and remaining[p] &gt; 0}
+    if empty: idle to next arrival
+    chosen = min(available, key = (remaining, arrival, PID))
+    run until completion or next arrival, whichever is first
+    update remaining; record block and completion</pre>
+        <div class="tradeoff"><div class="plus"><strong>+</strong> Short jobs get CPU quickly; can lower average TAT/WT.</div><div class="minus"><strong>−</strong> Long jobs may starve; more preemptions than SJF.</div></div>
+    </div>
+
+    <div class="algo-block">
+        <div class="algo-head"><span class="algo-num">04</span><h3>Round Robin (RR)</h3><span class="algo-type">Preemptive</span></div>
+        <p>Each ready process runs for at most one time quantum. If it does not finish, it goes to the back of the FIFO ready queue. New arrivals enter the queue in arrival/PID order; a process arriving exactly when a quantum expires enters before the preempted process is re-added.</p>
+        <div class="algo-meta">
+            <div><h4>Selection</h4><p>Leftmost process in the ready queue; run <span class="mono">min(quantum, remaining)</span>.</p></div>
+            <div><h4>Tie-break</h4><p>Queue order on entry: earlier arrival, then smaller PID.</p></div>
+        </div>
+        <pre>ready = empty FIFO queue; time = 0
+enqueue arrivals up to time
+while unfinished:
+    if ready empty: idle to next arrival; enqueue arrivals
+    p = ready.popleft()
+    run p for min(quantum, remaining[p])
+    enqueue new arrivals at the new time
+    if p unfinished: ready.append(p)   # preempted process goes last
+    else: record completion</pre>
+        <div class="tradeoff"><div class="plus"><strong>+</strong> Fair; good response time; no starvation for finite bursts.</div><div class="minus"><strong>−</strong> More switches; a very large quantum behaves like FCFS.</div></div>
+    </div>
+</section>
+
+<section class="new-page">
+    <div class="section-head">
+        <div class="left">
+            <span class="section-kicker">Algorithm reference · part 3</span>
+            <h2>The two priority policies</h2>
+            <p>Same importance rule; one waits, one can preempt.</p>
+        </div>
+        <div class="section-number">04</div>
+    </div>
+
+    <div class="algo-block">
+        <div class="algo-head"><span class="algo-num">05</span><h3>Priority Scheduling</h3><span class="algo-type nonpreemptive">Non-preemptive</span></div>
+        <p>Among arrived processes, the smallest priority number runs to completion. This is useful when important work must go first, but a continuously arriving stream of high-priority work can starve low-priority processes. Aging is not implemented.</p>
+        <div class="algo-meta">
+            <div><h4>Selection</h4><p>Minimum <span class="mono">(priority, arrival, PID)</span> among available processes.</p></div>
+            <div><h4>Tie-break</h4><p>Equal priority → earlier arrival → smaller PID.</p></div>
+        </div>
+        <pre>pending = all processes; time = 0
+while pending:
+    available = {p | p.arrival &lt;= time}
+    if empty: idle to next arrival
+    chosen = min(available, key = (priority, arrival, PID))
+    run chosen to completion; record it</pre>
+        <div class="tradeoff"><div class="plus"><strong>+</strong> Models importance; simple non-preemptive variant.</div><div class="minus"><strong>−</strong> Low-priority starvation; priority must be assigned sensibly.</div></div>
+    </div>
+
+    <div class="algo-block">
+        <div class="algo-head"><span class="algo-num">06</span><h3>Preemptive Priority</h3><span class="algo-type">Preemptive</span></div>
+        <p>The running process is interrupted when a newly arrived process has a strictly smaller priority number. Equal priority keeps the earlier-arrived process running. SRTF and Preemptive Priority share the same <span class="mono">_preemptive()</span> engine; only the selection key differs.</p>
+        <div class="algo-meta">
+            <div><h4>Selection</h4><p>Minimum <span class="mono">(priority, arrival, PID)</span>; re-evaluated at every arrival.</p></div>
+            <div><h4>Tie-break</h4><p>Equal priority → earlier arrival → smaller PID. Equal priority does not preempt.</p></div>
+        </div>
+        <pre>remaining = burst for every process; time = 0
+while unfinished:
+    available = {p | arrived and remaining[p] &gt; 0}
+    if empty: idle to next arrival
+    chosen = min(available, key = (priority, arrival, PID))
+    run until completion or next arrival, whichever is first
+    update remaining; record block and completion</pre>
+        <div class="tradeoff"><div class="plus"><strong>+</strong> Critical work gets immediate CPU; improves response time.</div><div class="minus"><strong>−</strong> Starvation; more preemptions than non-preemptive Priority.</div></div>
+    </div>
+
+    <div class="callout">
+        <strong>Shared implementation:</strong> SJF and non-preemptive Priority share <span class="mono">_non_preemptive()</span>;
+        SRTF and Preemptive Priority share <span class="mono">_preemptive()</span>. Round Robin is independent because it
+        uses a fixed quantum and a FIFO queue.
+    </div>
+</section>
+
+<!-- ========================= INPUTS AND VALIDATION =================== -->
+<section class="new-page">
+    <div class="section-head">
+        <div class="left">
+            <span class="section-kicker">Inputs</span>
+            <h2>What the user provides</h2>
+            <p>Every value is validated on the client for feedback and again on the server for correctness.</p>
+        </div>
+        <div class="section-number">05</div>
+    </div>
+
+    <table>
+        <thead><tr><th>Input</th><th>Type / rule</th><th>Example</th><th>Why it matters</th></tr></thead>
+        <tbody>
+            <tr><td><strong>Process ID</strong></td><td>1–16 letters, digits, <span class="mono">_</span> or <span class="mono">-</span>; unique, case-insensitive; <span class="mono">Idle</span> reserved</td><td><span class="mono">P1</span></td><td>Identifies rows and Gantt blocks; natural ordering makes P2 come before P10.</td></tr>
+            <tr><td><strong>Arrival time</strong></td><td>Whole number, ≥ 0</td><td><span class="mono">0</span></td><td>Determines when the process enters the ready set; creates initial idle gaps.</td></tr>
+            <tr><td><strong>Burst time</strong></td><td>Whole number, &gt; 0</td><td><span class="mono">4</span></td><td>Total CPU work; also the initial remaining time in preemptive algorithms.</td></tr>
+            <tr><td><strong>Priority</strong></td><td>Whole number, ≥ 0</td><td><span class="mono">2</span></td><td>Used by both Priority policies; lower number = higher priority.</td></tr>
+            <tr><td><strong>Algorithm</strong></td><td>One of six keys</td><td><span class="mono">srtf</span></td><td>Selects the scheduling policy and response shape.</td></tr>
+            <tr><td><strong>Quantum</strong></td><td>Whole number, &gt; 0; required only for <span class="mono">rr</span></td><td><span class="mono">2</span></td><td>Maximum continuous CPU time per Round Robin turn.</td></tr>
+        </tbody>
+    </table>
+
+    <div class="two-col">
+        <div class="panel">
+            <h4>Sample workload</h4>
+            <table style="margin:4px 0 0;">
+                <thead><tr><th>PID</th><th class="num">Arrival</th><th class="num">Burst</th><th class="num">Priority</th></tr></thead>
+                <tbody>
+                    <tr><td>P1</td><td class="num">0</td><td class="num">4</td><td class="num">2</td></tr>
+                    <tr><td>P2</td><td class="num">1</td><td class="num">3</td><td class="num">1</td></tr>
+                    <tr><td>P3</td><td class="num">2</td><td class="num">1</td><td class="num">3</td></tr>
+                    <tr><td>P4</td><td class="num">3</td><td class="num">2</td><td class="num">2</td></tr>
+                    <tr><td>P5</td><td class="num">4</td><td class="num">5</td><td class="num">4</td></tr>
+                </tbody>
+            </table>
+            <p class="tiny muted" style="margin:5px 0 0;">Round Robin quantum = 2. Loaded by the “Load sample” button.</p>
+        </div>
+        <div class="panel">
+            <h4>Rejected inputs</h4>
+            <ul class="source-list">
+                <li>Empty process list, or more than 100 processes.</li>
+                <li>Empty, invalid, reserved or duplicate Process ID.</li>
+                <li>Negative arrival or priority.</li>
+                <li>Burst time of 0 or less.</li>
+                <li>Decimal or non-numeric time values.</li>
+                <li>Missing quantum, or quantum ≤ 0 for Round Robin.</li>
+                <li>Unknown algorithm key or malformed JSON.</li>
+            </ul>
+            <p class="tiny muted">Errors appear inline, not in browser alerts.</p>
+        </div>
+    </div>
+
+    <div class="callout amber">
+        <strong>All times are whole-number units.</strong> This keeps the Gantt chart and formulas exact.
+        Decimal values such as <span class="mono">2.5</span> are rejected rather than rounded silently.
+        The maximum list size is 100 processes.
+    </div>
+</section>
+
+<!-- ========================= OUTPUTS AND FORMULAS ===================== -->
+<section class="new-page">
+    <div class="section-head">
+        <div class="left">
+            <span class="section-kicker">Outputs &amp; formulas</span>
+            <h2>What the simulator returns</h2>
+            <p>A timeline, one row per process, and a small metrics object.</p>
+        </div>
+        <div class="section-number">06</div>
+    </div>
+
+    <div class="three-col">
+        <div class="panel"><h4>Gantt timeline</h4><p class="tiny">A chronological list of <span class="mono">{pid, start, end}</span> blocks. <span class="mono">Idle</span> marks no ready process; adjacent same-process blocks are merged.</p></div>
+        <div class="panel"><h4>Per-process rows</h4><p class="tiny">PID, arrival, burst, priority, first start, completion, TAT, WT and RT. Returned in the user's input order.</p></div>
+        <div class="panel"><h4>Summary metrics</h4><p class="tiny">Average TAT/WT/RT, CPU utilization, process count, busy time, idle time and total elapsed time.</p></div>
+    </div>
+
+    <h3 style="margin-top:14px;">Definitions and formulas</h3>
+    <div class="formula-grid">
+        <div class="formula"><strong>Completion time</strong><code>CT<sub>i</sub></code><span>Time at which process i finishes its burst.</span></div>
+        <div class="formula"><strong>Turnaround time</strong><code>TAT<sub>i</sub> = CT<sub>i</sub> − AT<sub>i</sub></code><span>Total time from arrival to completion.</span></div>
+        <div class="formula"><strong>Waiting time</strong><code>WT<sub>i</sub> = TAT<sub>i</sub> − BT<sub>i</sub></code><span>Time spent waiting, excluding its own execution.</span></div>
+        <div class="formula"><strong>Response time</strong><code>RT<sub>i</sub> = first_start<sub>i</sub> − AT<sub>i</sub></code><span>Delay before the first CPU allocation.</span></div>
+        <div class="formula"><strong>Average metric</strong><code>avg = (1/n) Σ value<sub>i</sub></code><span>Applied to TAT, WT and RT.</span></div>
+        <div class="formula"><strong>CPU utilization</strong><code>(busy ÷ elapsed) × 100</code><span>Busy blocks only; elapsed is 0 to the last completion.</span></div>
+    </div>
+
+    <div class="two-col">
+        <div class="panel">
+            <h4>Worked FCFS calculation</h4>
+            <table style="margin:4px 0 0;">
+                <thead><tr><th>PID</th><th class="num">AT</th><th class="num">BT</th><th class="num">CT</th><th class="num">TAT</th><th class="num">WT</th><th class="num">RT</th></tr></thead>
+                <tbody>
+                    <tr><td>P1</td><td class="num">0</td><td class="num">4</td><td class="num">4</td><td class="num">4</td><td class="num">0</td><td class="num">0</td></tr>
+                    <tr><td>P2</td><td class="num">1</td><td class="num">3</td><td class="num">7</td><td class="num">6</td><td class="num">3</td><td class="num">3</td></tr>
+                    <tr><td>P3</td><td class="num">2</td><td class="num">1</td><td class="num">8</td><td class="num">6</td><td class="num">5</td><td class="num">5</td></tr>
+                    <tr><td>P4</td><td class="num">3</td><td class="num">2</td><td class="num">10</td><td class="num">7</td><td class="num">5</td><td class="num">5</td></tr>
+                    <tr><td>P5</td><td class="num">4</td><td class="num">5</td><td class="num">15</td><td class="num">11</td><td class="num">6</td><td class="num">6</td></tr>
+                </tbody>
+            </table>
+            <p class="tiny" style="margin-bottom:0;">Average TAT = 34/5 = <strong>6.80</strong> · WT = 19/5 = <strong>3.80</strong> · RT = <strong>3.80</strong> · busy 15 / elapsed 15 = <strong>100%</strong>.</p>
+        </div>
+        <div class="panel">
+            <h4>Reading the output</h4>
+            <ul class="source-list">
+                <li><strong>CT</strong> is the end of the process's last block.</li>
+                <li><strong>TAT</strong> includes waiting and execution.</li>
+                <li><strong>WT</strong> is zero if the process starts immediately.</li>
+                <li><strong>RT</strong> stops at the first start; it can differ from WT after preemption.</li>
+                <li><strong>Busy</strong> is the sum of non-idle block durations.</li>
+                <li><strong>Total elapsed</strong> includes initial idle time from t = 0.</li>
+                <li><strong>Best</strong> means minimum average TAT/WT/RT and maximum CPU utilization; ties are preserved.</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="callout">
+        <strong>Non-preemptive shortcut:</strong> if a process runs once to completion, its first start equals
+        completion minus burst, so <span class="mono">RT = WT</span>. In SRTF, Preemptive Priority and Round Robin,
+        the two can differ because a process may be interrupted and resume later.
+    </div>
+</section>
+
+<!-- ============================ WORKED EXAMPLE ======================== -->
+<section class="new-page">
+    <div class="section-head">
+        <div class="left">
+            <span class="section-kicker">Worked example</span>
+            <h2>One workload, six schedules</h2>
+            <p>The sample workload with Round Robin quantum = 2. Metrics are from the implemented code.</p>
+        </div>
+        <div class="section-number">07</div>
+    </div>
+
+    <div class="legend">
+        <span><i class="dot p1"></i> P1</span>
+        <span><i class="dot p2"></i> P2</span>
+        <span><i class="dot p3"></i> P3</span>
+        <span><i class="dot p4"></i> P4</span>
+        <span><i class="dot p5"></i> P5</span>
+        <span><i class="dot idle"></i> Idle</span>
+    </div>
+
+    <div class="schedule">
+        <div class="schedule-title"><strong>FCFS</strong><span>Avg TAT 6.80 · WT 3.80 · RT 3.80 · CPU 100%</span></div>
+        <div class="gantt"><div class="p1" style="flex-grow:4">P1</div><div class="p2" style="flex-grow:3">P2</div><div class="p3" style="flex-grow:1">P3</div><div class="p4" style="flex-grow:2">P4</div><div class="p5" style="flex-grow:5">P5</div></div>
+        <div class="timeline-text">P1 0–4 → P2 4–7 → P3 7–8 → P4 8–10 → P5 10–15</div>
+    </div>
+
+    <div class="schedule">
+        <div class="schedule-title"><strong>SJF</strong><span>Avg TAT 6.20 · WT 3.20 · RT 3.20 · CPU 100%</span></div>
+        <div class="gantt"><div class="p1" style="flex-grow:4">P1</div><div class="p3" style="flex-grow:1">P3</div><div class="p4" style="flex-grow:2">P4</div><div class="p2" style="flex-grow:3">P2</div><div class="p5" style="flex-grow:5">P5</div></div>
+        <div class="timeline-text">P1 0–4 → P3 4–5 → P4 5–7 → P2 7–10 → P5 10–15</div>
+    </div>
+
+    <div class="schedule">
+        <div class="schedule-title"><strong>SRTF</strong><span>Avg TAT 6.00 · WT 3.00 · RT 2.80 · CPU 100%</span></div>
+        <div class="gantt"><div class="p1" style="flex-grow:2">P1</div><div class="p3" style="flex-grow:1">P3</div><div class="p1" style="flex-grow:2">P1</div><div class="p4" style="flex-grow:2">P4</div><div class="p2" style="flex-grow:3">P2</div><div class="p5" style="flex-grow:5">P5</div></div>
+        <div class="timeline-text">P1 0–2 → P3 2–3 → P1 3–5 → P4 5–7 → P2 7–10 → P5 10–15</div>
+    </div>
+
+    <div class="schedule">
+        <div class="schedule-title"><strong>Round Robin (q = 2)</strong><span>Avg TAT 7.60 · WT 4.60 · RT 2.40 · CPU 100%</span></div>
+        <div class="gantt"><div class="p1" style="flex-grow:2">P1</div><div class="p2" style="flex-grow:2">P2</div><div class="p3" style="flex-grow:1">P3</div><div class="p1" style="flex-grow:2">P1</div><div class="p4" style="flex-grow:2">P4</div><div class="p5" style="flex-grow:2">P5</div><div class="p2" style="flex-grow:1">P2</div><div class="p5" style="flex-grow:3">P5</div></div>
+        <div class="timeline-text">P1 0–2 → P2 2–4 → P3 4–5 → P1 5–7 → P4 7–9 → P5 9–11 → P2 11–12 → P5 12–15</div>
+    </div>
+
+    <div class="schedule">
+        <div class="schedule-title"><strong>Priority (non-preemptive)</strong><span>Avg TAT 7.00 · WT 4.00 · RT 4.00 · CPU 100%</span></div>
+        <div class="gantt"><div class="p1" style="flex-grow:4">P1</div><div class="p2" style="flex-grow:3">P2</div><div class="p4" style="flex-grow:2">P4</div><div class="p3" style="flex-grow:1">P3</div><div class="p5" style="flex-grow:5">P5</div></div>
+        <div class="timeline-text">P1 0–4 → P2 4–7 → P4 7–9 → P3 9–10 → P5 10–15</div>
+    </div>
+
+    <div class="schedule">
+        <div class="schedule-title"><strong>Preemptive Priority</strong><span>Avg TAT 7.00 · WT 4.00 · RT 3.40 · CPU 100%</span></div>
+        <div class="gantt"><div class="p1" style="flex-grow:1">P1</div><div class="p2" style="flex-grow:3">P2</div><div class="p1" style="flex-grow:3">P1</div><div class="p4" style="flex-grow:2">P4</div><div class="p3" style="flex-grow:1">P3</div><div class="p5" style="flex-grow:5">P5</div></div>
+        <div class="timeline-text">P1 0–1 → P2 1–4 → P1 4–7 → P4 7–9 → P3 9–10 → P5 10–15</div>
+    </div>
+
+    <table style="margin-top:10px;">
+        <thead><tr><th>Algorithm</th><th class="num">Avg TAT</th><th class="num">Avg WT</th><th class="num">Avg RT</th><th class="num">CPU util</th></tr></thead>
+        <tbody>
+            <tr><td>FCFS</td><td class="num">6.80</td><td class="num">3.80</td><td class="num">3.80</td><td class="num">100.00%</td></tr>
+            <tr><td>SJF</td><td class="num">6.20</td><td class="num">3.20</td><td class="num">3.20</td><td class="num">100.00%</td></tr>
+            <tr><td><strong>SRTF</strong></td><td class="num best">6.00</td><td class="num best">3.00</td><td class="num">2.80</td><td class="num">100.00%</td></tr>
+            <tr><td><strong>Round Robin</strong></td><td class="num">7.60</td><td class="num">4.60</td><td class="num best">2.40</td><td class="num">100.00%</td></tr>
+            <tr><td>Priority</td><td class="num">7.00</td><td class="num">4.00</td><td class="num">4.00</td><td class="num">100.00%</td></tr>
+            <tr><td>Preemptive Priority</td><td class="num">7.00</td><td class="num">4.00</td><td class="num">3.40</td><td class="num">100.00%</td></tr>
+        </tbody>
+    </table>
+
+    <div class="three-col">
+        <div class="panel"><h4>Best TAT/WT</h4><p class="tiny"><strong>SRTF</strong> improves on SJF because P3 arrives with a shorter remaining time at t=2 and preempts P1.</p></div>
+        <div class="panel"><h4>Best response</h4><p class="tiny"><strong>Round Robin</strong> gives every process an early first turn; RT 2.40 beats SRTF's 2.80.</p></div>
+        <div class="panel"><h4>Utilization tie</h4><p class="tiny">No idle gaps: busy = elapsed = 15, so every algorithm reports <strong>100%</strong>.</p></div>
+    </div>
+</section>
+
+<!-- ========================= IMPLEMENTATION =========================== -->
+<section class="new-page">
+    <div class="section-head">
+        <div class="left">
+            <span class="section-kicker">Implementation &amp; verification</span>
+            <h2>How the project is built</h2>
+            <p>Framework-free scheduling logic, a thin Flask API and two rendering modules.</p>
+        </div>
+        <div class="section-number">08</div>
+    </div>
+
+    <div class="two-col">
+        <div class="panel">
+            <h4>Project files</h4>
+            <ul class="source-list">
+                <li><span class="mono">app.py</span> — routes, validation, JSON responses.</li>
+                <li><span class="mono">scheduler/algorithms.py</span> — six pure-Python schedulers.</li>
+                <li><span class="mono">scheduler/metrics.py</span> — formulas, averages, best-algorithm helper.</li>
+                <li><span class="mono">templates/index.html</span> — single-page interface.</li>
+                <li><span class="mono">static/js/main.js</span> — process CRUD and API calls.</li>
+                <li><span class="mono">static/js/gantt.js</span> — custom Gantt and tooltips.</li>
+                <li><span class="mono">static/js/charts.js</span> — Chart.js comparison bars.</li>
+                <li><span class="mono">tests/test_algorithms.py</span> — 57 automated tests.</li>
+                <li><span class="mono">docs/</span> — README, function guide, walkthrough, viva and test cases.</li>
+            </ul>
+        </div>
+        <div class="panel">
+            <h4>API endpoints</h4>
+            <table style="margin:4px 0 0;">
+                <thead><tr><th>Method</th><th>Path</th><th>Purpose</th></tr></thead>
+                <tbody>
+                    <tr><td>GET</td><td class="mono">/</td><td>Serve the page</td></tr>
+                    <tr><td>POST</td><td class="mono">/api/schedule</td><td>One algorithm</td></tr>
+                    <tr><td>POST</td><td class="mono">/api/compare</td><td>All six + winners</td></tr>
+                </tbody>
+            </table>
+            <p class="tiny muted" style="margin-bottom:0;">Validation failures return HTTP 400 with a clear <span class="mono">error</span> string. Successful calls return HTTP 200 JSON.</p>
+        </div>
+    </div>
+
+    <div class="two-col" style="margin-top:12px;">
+        <div class="panel">
+            <h4>Automated verification</h4>
+            <p class="tiny" style="margin-bottom:4px;"><span class="mono">python -m pytest -q</span> → <strong>57 passed</strong>.</p>
+            <ul class="source-list">
+                <li>All six algorithms on a shared sample.</li>
+                <li>SRTF and Preemptive Priority preemption and ties.</li>
+                <li>Round Robin expiry ordering and quantum edges.</li>
+                <li>Idle gaps, single process, simultaneous arrivals.</li>
+                <li>API success and validation failures.</li>
+                <li>Static assets and index page.</li>
+            </ul>
+        </div>
+        <div class="panel">
+            <h4>Browser verification</h4>
+            <p class="tiny" style="margin-bottom:4px;">The page was driven in headless Chrome:</p>
+            <ul class="source-list">
+                <li>6 algorithm cards and correct card selection.</li>
+                <li>SRTF and Preemptive Priority Gantt charts.</li>
+                <li>Comparison: 6 rows, 4 best cards, 3 charts.</li>
+                <li>Add / duplicate error / edit / delete.</li>
+                <li>Empty-list inline error.</li>
+                <li>Mobile width 390 px: no page overflow.</li>
+                <li>0 severe console errors.</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="callout amber" style="margin-top:12px;">
+        <strong>Limitations:</strong> single core; whole-number time units; no I/O, dispatcher latency or
+        context-switch overhead; no aging; at most 100 processes; browser state is not persisted.
+        The application is a teaching simulation and never controls the real OS scheduler.
+    </div>
+
+    <h3 style="margin-top:14px;">Viva summary</h3>
+    <p style="font-size:9.4pt;">
+        This project is a Flask-served, browser-based simulator that runs FCFS, SJF, SRTF, Round Robin,
+        non-preemptive Priority and Preemptive Priority scheduling in pure Python. It returns a merged Gantt
+        timeline and CT/TAT/WT/RT metrics as JSON, and visualises the results with a custom Gantt chart and
+        Chart.js comparison charts. It is a teaching simulation, not a real OS scheduler.
+    </p>
+
+    <div class="footer-note">
+        CPU Scheduler Lab · Project Workflow &amp; Algorithm Guide · generated from the implemented source and
+        verified test cases.
+    </div>
+</section>
+
+</body>
+</html>
