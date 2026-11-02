@@ -1,4 +1,4 @@
-# Viva Preparation — 85 Questions and Answers
+# Viva Preparation — 93 Questions and Answers
 
 Answers are intentionally short and technically correct. Project-specific statements refer to the actual implementation in this repository.
 
@@ -116,11 +116,11 @@ Yes. A timer interrupt at the end of each quantum can preempt the running proces
 
 ### 27. Is this Round Robin the same as preemptive SJF?
 
-No. Round Robin uses a fixed time quantum and a FIFO ready queue. Preemptive SJF (SRTF) is a different policy that compares remaining burst times at every arrival. Both are implemented here, but their selection rules are independent.
+No. Round Robin uses a fixed time quantum and a FIFO ready queue. Preemptive SJF (SRTF) and Preemptive Priority are different policies that compare remaining time and priority respectively. All three are implemented here, and their selection rules are independent.
 
 ### 28. Why doesn't this project implement multilevel queues or multilevel feedback queues?
 
-The brief asks for five specific single-core algorithms and prioritises simplicity and explainability. Multilevel queues would add complexity without improving the demonstration of the required concepts.
+The brief asks for six specific single-core algorithms and prioritises simplicity and explainability. Multilevel queues would add complexity without improving the demonstration of the required concepts.
 
 ### 29. What is throughput?
 
@@ -128,7 +128,7 @@ Throughput is the number of processes completed per unit time. This project focu
 
 ### 30. Which algorithm is “best”?
 
-It depends on the metric. On the sample workload, SRTF has the best average TAT and WT, while Round Robin has the best average RT. All five reach 100% CPU utilization because there are no idle gaps. There is no single best algorithm for every workload.
+It depends on the metric. On the sample workload, SRTF has the best average TAT and WT, while Round Robin has the best average RT. All six reach 100% CPU utilization because there are no idle gaps. There is no single best algorithm for every workload.
 
 ---
 
@@ -172,9 +172,9 @@ FCFS completion times are 4, 7, 8, 10, 15. TAT values are 4, 6, 6, 7, 11, so ave
 
 ### 40. Why is Round Robin's average response time better than SJF's and SRTF's on the sample?
 
-Round Robin interrupts long jobs at a fixed quantum, so P2, P3, P4 and P5 get their first CPU turn earlier. Its average RT is 2.40, versus 2.80 for SRTF and 3.20 for SJF. However, the extra interruptions delay completion, so Round Robin's average TAT (7.60) is worse than SRTF's (6.00) and SJF's (6.20).
+Round Robin interrupts long jobs at a fixed quantum, so P2, P3, P4 and P5 get their first CPU turn earlier. Its average RT is 2.40, versus 2.80 for SRTF, 3.20 for SJF and 3.40 for Preemptive Priority. However, the extra interruptions delay completion, so Round Robin's average TAT (7.60) is worse than SRTF's (6.00) and SJF's (6.20).
 
-### 41. Why do all five algorithms show 100% CPU utilization on the sample?
+### 41. Why do all six algorithms show 100% CPU utilization on the sample?
 
 The sample has no idle gaps: at least one process is ready from time 0 until time 15. Busy time is therefore 15 and elapsed time is 15, giving 100%.
 
@@ -218,9 +218,9 @@ It stores each process's start and completion time while the algorithm runs. At 
 
 `O(n log n)` because of the initial sort by arrival and PID, followed by a single `O(n)` pass.
 
-### 51. What is the time complexity of SJF, SRTF and Priority?
+### 51. What is the time complexity of SJF, SRTF, Priority and Preemptive Priority?
 
-SJF and Priority are `O(n²)` in this implementation: each of the `n` rounds scans the pending list to find the available processes and the minimum. SRTF is also `O(n²)`: there are at most `O(n)` arrival/completion events, and each event scans the available list. Heaps could improve these bounds, but the scan is easier to explain.
+SJF and non-preemptive Priority are `O(n²)` in this implementation: each of the `n` rounds scans the pending list to find the available processes and the minimum. SRTF and Preemptive Priority are also `O(n²)`: there are at most `O(n)` arrival/completion events, and each event scans the available list. Heaps could improve these bounds, but the scan is easier to explain.
 
 ### 52. What is the time complexity of Round Robin?
 
@@ -253,7 +253,7 @@ Flask is small and readable. Two JSON endpoints and one HTML route are enough, s
 ### 58. What are the two API endpoints?
 
 - `POST /api/schedule` runs one chosen algorithm.
-- `POST /api/compare` runs all five algorithms on the same list and quantum.
+- `POST /api/compare` runs all six algorithms on the same list and quantum.
 - `GET /` serves the page.
 
 ### 59. How does the frontend send data to Flask?
@@ -302,7 +302,7 @@ No. Each request contains the complete process list, and the server computes a r
 
 ### 70. How was the project tested?
 
-`python -m pytest -q` runs 51 automated tests covering algorithms, edge cases, metrics, comparison winners and API validation. The Flask app was also started and tested over real HTTP, and the UI was driven in headless Chrome to verify loading the sample, running FCFS, SRTF and Round Robin, comparison charts, validation errors, and add/edit/delete.
+`python -m pytest -q` runs 57 automated tests covering algorithms, edge cases, metrics, comparison winners and API validation. The Flask app was also started and tested over real HTTP, and the UI was driven in headless Chrome to verify loading the sample, running FCFS, SRTF, Preemptive Priority and Round Robin, comparison charts, validation errors, and add/edit/delete.
 
 ---
 
@@ -330,7 +330,7 @@ When `available` is empty, no process has arrived yet. The algorithm jumps to th
 
 ### 76. Why does the comparison reuse the quantum field even when FCFS is selected?
 
-The comparison always includes Round Robin, so it needs a valid quantum. The UI hides the field for non-RR single runs as required, but the value is still used by **Compare all five**. If it is invalid, the page shows a clear comparison error.
+The comparison always includes Round Robin, so it needs a valid quantum. The UI hides the field for non-RR single runs as required, but the value is still used by **Compare all six**. If it is invalid, the page shows a clear comparison error.
 
 ### 77. Why is `Idle` a reserved Process ID?
 
@@ -338,7 +338,7 @@ The Gantt chart and metrics use the string `"Idle"` to identify CPU idle blocks.
 
 ### 78. What would you improve next?
 
-Possible extensions: preemptive priority, aging, I/O bursts, multiple cores, CSV import/export, persistence with SQLite, and real measured context-switch overhead. They were deliberately left out to keep the project simple and correct.
+Possible extensions: aging, I/O bursts, multiple cores, CSV import/export, persistence with SQLite, and real measured context-switch overhead. They were deliberately left out to keep the project simple and correct.
 
 ---
 
@@ -374,6 +374,42 @@ SRTF chooses dynamically by remaining time, so short jobs always go first. Round
 
 ---
 
-## H. One-line summary for the examiner
+## H. Preemptive Priority extension
 
-> This project is a Flask-served, browser-based simulator that runs FCFS, SJF, SRTF, Round Robin and non-preemptive Priority scheduling in pure Python, returns a merged Gantt timeline and CT/TAT/WT/RT metrics as JSON, and visualises the results with a custom Gantt chart and Chart.js comparison charts. It is a teaching simulation and does not control the real OS scheduler.
+### 86. What is Preemptive Priority Scheduling?
+
+It is a priority policy that can interrupt the running process. At every arrival, the scheduler compares the new process's priority with the running process's priority and gives the CPU to the process with the smaller priority number.
+
+### 87. What is the difference between Priority and Preemptive Priority?
+
+The non-preemptive version (`priority`) lets a running process finish even if a higher-priority process arrives. The preemptive version (`priority_preemptive`) immediately switches to the higher-priority arrival. Both use the same priority numbering: lower number = higher priority.
+
+### 88. When exactly does Preemptive Priority preempt a process?
+
+Only when a newly arrived process has a **strictly smaller** priority number than the running process. If the priorities are equal, the earlier-arrived process keeps the CPU, so no preemption occurs.
+
+### 89. How does Preemptive Priority break ties?
+
+It compares `(priority, arrival_time, PID)`. The smallest priority wins; equal priorities go to the earlier arrival; if both tie, the smaller Process ID wins.
+
+### 90. How is Preemptive Priority implemented in this project?
+
+It calls `_preemptive()` with the key `(priority, arrival, pid_sort_key(pid))`. `_preemptive()` also powers SRTF and runs the chosen process only until it completes or the next arrival occurs, then re-evaluates. First-start and completion times are recorded, and adjacent blocks are merged.
+
+### 91. How does Preemptive Priority differ from SRTF?
+
+Both use the same preemptive engine, but their keys differ. SRTF chooses the smallest **remaining time**, which changes as processes run. Preemptive Priority chooses the smallest **priority number**, which is fixed for each process.
+
+### 92. Why does Preemptive Priority improve response time but not TAT/WT on the sample?
+
+P2 has priority 1 and arrives at t=1, so it preempts P1 immediately. This lowers P2's response time to 0. Average TAT/WT stay at 7.00/4.00 because P1 and P2 exchange completion positions, leaving the totals unchanged. Average RT improves from 4.00 to 3.40.
+
+### 93. Does Preemptive Priority risk starvation?
+
+Yes. A continuously arriving stream of higher-priority processes can starve lower-priority processes. Aging, which gradually improves a waiting process's priority, would reduce this risk but is not implemented here.
+
+---
+
+## I. One-line summary for the examiner
+
+> This project is a Flask-served, browser-based simulator that runs FCFS, SJF, SRTF, Round Robin, non-preemptive Priority and Preemptive Priority scheduling in pure Python, returns a merged Gantt timeline and CT/TAT/WT/RT metrics as JSON, and visualises the results with a custom Gantt chart and Chart.js comparison charts. It is a teaching simulation and does not control the real OS scheduler.

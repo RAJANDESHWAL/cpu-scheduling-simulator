@@ -2,7 +2,7 @@
 scheduler/algorithms.py
 =======================
 
-Pure-Python implementations of five single-core CPU scheduling algorithms.
+Pure-Python implementations of six single-core CPU scheduling algorithms.
 
 This module has NO Flask imports and NO knowledge of the web page.  Every
 function receives a list of process dictionaries and returns a plain Python
@@ -31,6 +31,7 @@ ALGORITHM_LABELS = {
     "srtf": "SRTF",
     "rr": "Round Robin",
     "priority": "Priority",
+    "priority_preemptive": "Preemptive Priority",
 }
 
 
@@ -182,18 +183,19 @@ def sjf(processes):
     )
 
 
-def srtf(processes):
+def _preemptive(processes, algorithm_key, key_function):
     """
-    Shortest Remaining Time First (preemptive SJF).
+    Shared engine for SRTF and Preemptive Priority Scheduling.
 
-    At every arrival the algorithm compares the remaining burst times of all
-    arrived, unfinished processes.  The smallest remaining time runs; if a new
-    arrival is shorter than the running process, it preempts immediately.
+    Both algorithms re-evaluate the best process whenever a new process
+    arrives, and both run the chosen process until it finishes or the next
+    arrival occurs.  They differ only in their key:
 
-    Ties are broken by earlier arrival time and then by the smaller PID, using
-    the same natural PID ordering as the other algorithms.  Because only a new
-    arrival can change the winner, the running process can safely execute until
-    either it finishes or the next arrival occurs.
+    * SRTF: (remaining time, arrival, PID)
+    * Preemptive Priority: (priority number, arrival, PID)
+
+    A new arrival can therefore preempt the running process when its key is
+    smaller.  `_build_result` merges adjacent blocks of the same process.
     """
     ordered = sorted(processes, key=lambda p: (p["arrival"], pid_sort_key(p["pid"])))
     remaining = {p["pid"]: p["burst"] for p in processes}
@@ -217,14 +219,7 @@ def srtf(processes):
             time = next_arrival
             continue
 
-        chosen = min(
-            available,
-            key=lambda p: (
-                remaining[p["pid"]],
-                p["arrival"],
-                pid_sort_key(p["pid"]),
-            ),
-        )
+        chosen = min(available, key=lambda p: key_function(p, remaining))
         pid = chosen["pid"]
 
         if pid not in records:
@@ -251,7 +246,26 @@ def srtf(processes):
             records[pid]["completion_time"] = time
             completed += 1
 
-    return _build_result("srtf", processes, records, timeline)
+    return _build_result(algorithm_key, processes, records, timeline)
+
+
+def srtf(processes):
+    """
+    Shortest Remaining Time First (preemptive SJF).
+
+    At every arrival, the arrived process with the smallest remaining burst
+    time runs.  Ties use earlier arrival and then the smaller PID, so a new
+    arrival only preempts when its remaining time is strictly smaller.
+    """
+    return _preemptive(
+        processes,
+        "srtf",
+        lambda p, remaining: (
+            remaining[p["pid"]],
+            p["arrival"],
+            pid_sort_key(p["pid"]),
+        ),
+    )
 
 
 def priority_scheduling(processes):
@@ -265,6 +279,27 @@ def priority_scheduling(processes):
         processes,
         "priority",
         lambda p: (p["priority"], p["arrival"], pid_sort_key(p["pid"])),
+    )
+
+
+def preemptive_priority(processes):
+    """
+    Preemptive Priority Scheduling (lower number = higher priority).
+
+    At every arrival, the arrived process with the smallest priority number
+    runs.  A newly arrived process preempts the running one only when its
+    priority number is strictly smaller.  Equal priorities are broken by
+    earlier arrival and then by the smaller PID, so an equal-priority arrival
+    does not preempt the current process.
+    """
+    return _preemptive(
+        processes,
+        "priority_preemptive",
+        lambda p, remaining: (
+            p["priority"],
+            p["arrival"],
+            pid_sort_key(p["pid"]),
+        ),
     )
 
 
@@ -346,7 +381,8 @@ def run_algorithm(algorithm_key, processes, quantum=None):
     Parameters
     ----------
     algorithm_key : str
-        One of "fcfs", "sjf", "srtf", "rr", "priority" (case-insensitive).
+        One of "fcfs", "sjf", "srtf", "rr", "priority", "priority_preemptive"
+        (case-insensitive).
     processes : list[dict]
         Validated process dictionaries.
     quantum : int, optional
@@ -368,6 +404,8 @@ def run_algorithm(algorithm_key, processes, quantum=None):
         return srtf(processes)
     if key == "priority":
         return priority_scheduling(processes)
+    if key == "priority_preemptive":
+        return preemptive_priority(processes)
     if key == "rr":
         if quantum is None:
             raise ValueError("Time quantum is required for Round Robin.")

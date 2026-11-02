@@ -8,7 +8,7 @@ Routes
 ------
 GET  /              -> the single-page website
 POST /api/schedule  -> run ONE algorithm on the submitted process list
-POST /api/compare   -> run all five algorithms on the same process list
+POST /api/compare   -> run all six algorithms on the same process list
 
 All request validation happens here so the scheduling modules can stay pure
 and simple.  Errors are returned as JSON with HTTP status 400 and are shown
@@ -27,7 +27,14 @@ app = Flask(__name__)
 # Keep JSON keys in the order we build them (easier to read while debugging).
 app.json.sort_keys = False
 
-ALLOWED_ALGORITHMS = ("fcfs", "sjf", "srtf", "rr", "priority")
+ALLOWED_ALGORITHMS = (
+    "fcfs",
+    "sjf",
+    "srtf",
+    "rr",
+    "priority",
+    "priority_preemptive",
+)
 MAX_PROCESSES = 100
 PID_PATTERN = re.compile(r"^[A-Za-z0-9_-]{1,16}$")
 
@@ -183,7 +190,7 @@ def api_schedule():
         algorithm_key = str(data.get("algorithm", "")).strip().lower()
         if algorithm_key not in ALLOWED_ALGORITHMS:
             raise ValidationError(
-                "Choose a valid algorithm: fcfs, sjf, srtf, rr or priority."
+                "Choose a valid algorithm: fcfs, sjf, srtf, rr, priority or priority_preemptive."
             )
 
         quantum = validate_quantum(data.get("quantum")) if algorithm_key == "rr" else None
@@ -202,7 +209,8 @@ def api_schedule():
 @app.post("/api/compare")
 def api_compare():
     """
-    Run FCFS, SJF, SRTF, Round Robin and Priority on the SAME process list.
+    Run FCFS, SJF, SRTF, Round Robin, Priority and Preemptive Priority on the
+    SAME process list.
 
     The time quantum is required because Round Robin is always included.
     The response also reports the best algorithm(s) for each metric.

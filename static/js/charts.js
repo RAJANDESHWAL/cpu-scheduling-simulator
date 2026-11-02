@@ -20,7 +20,8 @@
         sjf: "SJF",
         srtf: "SRTF",
         rr: "RR",
-        priority: "Priority"
+        priority: "Priority",
+        priority_preemptive: "Prem. Priority"
     };
 
     function isBest(bestList, algorithmName) {

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#0f766e">
-    <meta name="description" content="An interactive single-core CPU scheduling simulator for FCFS, SJF, SRTF, Round Robin and Priority scheduling. Built with Flask and vanilla JavaScript.">
+    <meta name="description" content="An interactive single-core CPU scheduling simulator for FCFS, SJF, SRTF, Round Robin, Priority and Preemptive Priority scheduling. Built with Flask and vanilla JavaScript.">
     <title>CPU Scheduler Lab | Operating Systems Mini Project</title>
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
@@ -51,7 +51,7 @@
                     <span class="eyebrow">Operating Systems &middot; CPU Scheduling</span>
                     <h1>See how an operating system chooses the next process.</h1>
                     <p class="lead">
-                        Build a workload, run it through FCFS, SJF, SRTF, Round Robin or Priority scheduling,
+                        Build a workload, run it through FCFS, SJF, SRTF, Round Robin, Priority or Preemptive Priority scheduling,
                         and inspect the Gantt chart and performance metrics on a simulated single-core CPU.
                     </p>
                     <div class="hero-actions">
@@ -80,7 +80,7 @@
                         <span>0</span><span>3</span><span>5</span><span>6</span><span>7</span><span>10</span>
                     </div>
                     <div class="hero-stats">
-                        <div><strong>5</strong><span>algorithms</span></div>
+                        <div><strong>6</strong><span>algorithms</span></div>
                         <div><strong>5</strong><span>metrics</span></div>
                         <div><strong>1</strong><span>CPU core</span></div>
                     </div>
@@ -175,7 +175,7 @@
                     <div>
                         <span class="eyebrow">Step 2</span>
                         <h2>Choose a scheduling algorithm</h2>
-                        <p>All five algorithms run on a single CPU core and ignore context-switch overhead.</p>
+                        <p>All six algorithms run on a single CPU core and ignore context-switch overhead.</p>
                     </div>
                 </div>
 
@@ -227,6 +227,16 @@
                             <span class="tag">Non-preemptive</span>
                         </span>
                         <span class="algo-desc">The arrived process with the smallest priority number runs next.</span>
+                        <span class="algo-meta">Tie-break: priority, arrival, PID</span>
+                    </label>
+
+                    <label class="algo-card" data-algo="priority_preemptive">
+                        <input type="radio" name="algorithm" value="priority_preemptive">
+                        <span class="algo-top">
+                            <span class="algo-name">Preemptive Priority</span>
+                            <span class="tag tag-accent">Preemptive</span>
+                        </span>
+                        <span class="algo-desc">A newly arrived process with a smaller priority number immediately preempts the running process.</span>
                         <span class="algo-meta">Tie-break: priority, arrival, PID</span>
                     </label>
                 </div>
@@ -347,9 +357,9 @@
                     <div>
                         <span class="eyebrow">Step 3</span>
                         <h2>Algorithm comparison</h2>
-                        <p>Run all five algorithms on the same process list and the same Round Robin quantum.</p>
+                        <p>Run all six algorithms on the same process list and the same Round Robin quantum.</p>
                     </div>
-                    <button type="button" class="btn btn-primary" id="compare-button">Compare all five</button>
+                    <button type="button" class="btn btn-primary" id="compare-button">Compare all six</button>
                 </div>
 
                 <div id="compare-error" class="form-error" role="alert" hidden></div>
@@ -361,7 +371,7 @@
                         </svg>
                     </span>
                     <h3>Nothing to compare yet</h3>
-                    <p>Add processes, then press <strong>Compare all five</strong>. The quantum field above is reused for Round Robin.</p>
+                    <p>Add processes, then press <strong>Compare all six</strong>. The quantum field above is reused for Round Robin.</p>
                 </div>
 
                 <div id="compare-content" hidden>
@@ -424,7 +434,7 @@
                     <p class="compare-note">
                         The best bar in each chart is highlighted in green. A tie highlights every algorithm
                         that shares the winning value. CPU utilization is shown in the table because, with no
-                        idle gaps, all five algorithms can reach 100%.
+                        idle gaps, all six algorithms can reach 100%.
                     </p>
                 </div>
             </div>
