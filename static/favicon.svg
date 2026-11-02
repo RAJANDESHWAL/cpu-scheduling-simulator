@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="CPU Scheduler Lab">
+    <rect width="64" height="64" rx="14" fill="#0f766e"/>
+    <rect x="18" y="18" width="28" height="28" rx="6" fill="none" stroke="#ccfbf1" stroke-width="3"/>
+    <rect x="27" y="27" width="10" height="10" rx="2" fill="#5eead4"/>
+    <path d="M26 10v8M38 10v8M26 46v8M38 46v8M10 26h8M10 38h8M46 26h8M46 38h8"
+          stroke="#ccfbf1" stroke-width="3" stroke-linecap="round"/>
+</svg>

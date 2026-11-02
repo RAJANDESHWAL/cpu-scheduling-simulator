@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0f766e">
+    <meta name="description" content="An interactive single-core CPU scheduling simulator for FCFS, SJF, Round Robin and Priority scheduling. Built with Flask and vanilla JavaScript.">
+    <title>CPU Scheduler Lab | Operating Systems Mini Project</title>
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- Chart.js is used only for the comparison bar charts. -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
+    <script src="{{ url_for('static', filename='js/gantt.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/charts.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}" defer></script>
+</head>
+<body>
+    <a class="skip-link" href="#main-content">Skip to content</a>
+
+    <header class="site-header">
+        <div class="container header-inner">
+            <a class="brand" href="#home" aria-label="CPU Scheduler Lab home">
+                <span class="brand-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="6" y="6" width="12" height="12" rx="2"></rect>
+                        <rect x="9.5" y="9.5" width="5" height="5" rx="1"></rect>
+                        <path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3"></path>
+                    </svg>
+                </span>
+                <span class="brand-text">
+                    <strong>CPU Scheduler Lab</strong>
+                    <small>Operating Systems Mini Project</small>
+                </span>
+            </a>
+
+            <nav class="nav" aria-label="Main navigation">
+                <a class="nav-link active" href="#home">Home</a>
+                <a class="nav-link" href="#processes">Processes</a>
+                <a class="nav-link" href="#algorithm">Algorithm</a>
+                <a class="nav-link" href="#results">Results</a>
+                <a class="nav-link" href="#compare">Compare</a>
+            </nav>
+        </div>
+    </header>
+
+    <main id="main-content">
+        <!-- ============================= HOME ============================= -->
+        <section id="home" class="hero">
+            <div class="container hero-grid">
+                <div class="hero-copy">
+                    <span class="eyebrow">Operating Systems &middot; CPU Scheduling</span>
+                    <h1>See how an operating system chooses the next process.</h1>
+                    <p class="lead">
+                        Build a workload, run it through FCFS, SJF, Round Robin or Priority scheduling,
+                        and inspect the Gantt chart and performance metrics on a simulated single-core CPU.
+                    </p>
+                    <div class="hero-actions">
+                        <button type="button" class="btn btn-primary" id="hero-sample">Load sample workload</button>
+                        <a class="btn btn-ghost" href="#processes">Build my own</a>
+                    </div>
+                    <p class="disclaimer">
+                        <strong>Simulation only.</strong> This website demonstrates scheduling algorithms;
+                        it does not control your computer's real operating-system scheduler.
+                    </p>
+                </div>
+
+                <div class="hero-card" aria-hidden="true">
+                    <div class="hero-card-head">
+                        <span>Example timeline</span>
+                        <span class="pill">Round Robin &middot; q = 2</span>
+                    </div>
+                    <div class="mini-track">
+                        <div class="mini-block mini-c1" style="flex-grow: 3;">P1</div>
+                        <div class="mini-block mini-c2" style="flex-grow: 2;">P2</div>
+                        <div class="mini-block mini-c3" style="flex-grow: 1;">P3</div>
+                        <div class="mini-block mini-idle" style="flex-grow: 1;">Idle</div>
+                        <div class="mini-block mini-c1" style="flex-grow: 3;">P1</div>
+                    </div>
+                    <div class="mini-axis">
+                        <span>0</span><span>3</span><span>5</span><span>6</span><span>7</span><span>10</span>
+                    </div>
+                    <div class="hero-stats">
+                        <div><strong>4</strong><span>algorithms</span></div>
+                        <div><strong>5</strong><span>metrics</span></div>
+                        <div><strong>1</strong><span>CPU core</span></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- =========================== PROCESSES ========================== -->
+        <section id="processes" class="section">
+            <div class="container">
+                <div class="section-heading">
+                    <div>
+                        <span class="eyebrow">Step 1</span>
+                        <h2>Process management</h2>
+                        <p>Add the processes that will compete for the CPU. Each row is one process.</p>
+                    </div>
+                    <div class="section-actions">
+                        <span class="count-badge" id="process-count">0 processes</span>
+                        <button type="button" class="btn btn-secondary btn-sm" id="load-sample">Load sample</button>
+                        <button type="button" class="btn btn-ghost btn-sm" id="clear-processes">Clear all</button>
+                    </div>
+                </div>
+
+                <div class="card form-card">
+                    <form id="process-form" novalidate>
+                        <div class="form-grid">
+                            <div class="field">
+                                <label for="pid">Process ID</label>
+                                <input type="text" id="pid" name="pid" placeholder="P1" maxlength="16" autocomplete="off" spellcheck="false" required>
+                                <span class="field-hint">e.g. P1</span>
+                            </div>
+                            <div class="field">
+                                <label for="arrival">Arrival time</label>
+                                <input type="number" id="arrival" name="arrival" placeholder="0" min="0" step="1" inputmode="numeric" required>
+                                <span class="field-hint">Whole number &ge; 0</span>
+                            </div>
+                            <div class="field">
+                                <label for="burst">Burst time</label>
+                                <input type="number" id="burst" name="burst" placeholder="4" min="1" step="1" inputmode="numeric" required>
+                                <span class="field-hint">Whole number &gt; 0</span>
+                            </div>
+                            <div class="field">
+                                <label for="priority">Priority</label>
+                                <input type="number" id="priority" name="priority" placeholder="2" min="0" step="1" inputmode="numeric" required>
+                                <span class="field-hint">Lower number = higher priority</span>
+                            </div>
+                        </div>
+
+                        <div id="form-error" class="form-error" role="alert" hidden></div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary" id="process-submit">Add process</button>
+                            <button type="button" class="btn btn-ghost" id="cancel-edit" hidden>Cancel edit</button>
+                            <span class="form-hint" id="form-mode-hint">The new process is appended to the list.</span>
+                        </div>
+                    </form>
+                </div>
+
+                <div id="process-notice" class="notice" role="status" hidden></div>
+
+                <div class="card table-card">
+                    <div class="card-head">
+                        <h3>Process list</h3>
+                        <span>Arrival, burst and priority are whole-number time units</span>
+                    </div>
+                    <div class="table-scroll">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Process ID</th>
+                                    <th class="num">Arrival</th>
+                                    <th class="num">Burst</th>
+                                    <th class="num">Priority</th>
+                                    <th class="actions-col">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="process-tbody">
+                                <tr>
+                                    <td colspan="5" class="empty-cell">No processes yet. Add one above or load the sample workload.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- =========================== ALGORITHM ========================== -->
+        <section id="algorithm" class="section section-alt">
+            <div class="container">
+                <div class="section-heading">
+                    <div>
+                        <span class="eyebrow">Step 2</span>
+                        <h2>Choose a scheduling algorithm</h2>
+                        <p>All four algorithms run on a single CPU core and ignore context-switch overhead.</p>
+                    </div>
+                </div>
+
+                <div class="algo-grid" role="radiogroup" aria-label="Scheduling algorithm">
+                    <label class="algo-card selected" data-algo="fcfs">
+                        <input type="radio" name="algorithm" value="fcfs" checked>
+                        <span class="algo-top">
+                            <span class="algo-name">FCFS</span>
+                            <span class="tag">Non-preemptive</span>
+                        </span>
+                        <span class="algo-desc">First Come, First Served. The process that arrives first runs to completion.</span>
+                        <span class="algo-meta">Tie-break: arrival, then PID</span>
+                    </label>
+
+                    <label class="algo-card" data-algo="sjf">
+                        <input type="radio" name="algorithm" value="sjf">
+                        <span class="algo-top">
+                            <span class="algo-name">SJF</span>
+                            <span class="tag">Non-preemptive</span>
+                        </span>
+                        <span class="algo-desc">Shortest Job First. The arrived process with the smallest burst runs next.</span>
+                        <span class="algo-meta">Tie-break: burst, arrival, PID</span>
+                    </label>
+
+                    <label class="algo-card" data-algo="rr">
+                        <input type="radio" name="algorithm" value="rr">
+                        <span class="algo-top">
+                            <span class="algo-name">Round Robin</span>
+                            <span class="tag tag-accent">Preemptive</span>
+                        </span>
+                        <span class="algo-desc">Each process gets a fixed time quantum, then moves to the back of the ready queue.</span>
+                        <span class="algo-meta">Tie-break: arrival, then PID</span>
+                    </label>
+
+                    <label class="algo-card" data-algo="priority">
+                        <input type="radio" name="algorithm" value="priority">
+                        <span class="algo-top">
+                            <span class="algo-name">Priority</span>
+                            <span class="tag">Non-preemptive</span>
+                        </span>
+                        <span class="algo-desc">The arrived process with the smallest priority number runs next.</span>
+                        <span class="algo-meta">Tie-break: priority, arrival, PID</span>
+                    </label>
+                </div>
+
+                <div class="card run-card">
+                    <div class="quantum-field" id="quantum-field" hidden>
+                        <label for="quantum">Time quantum <span>Round Robin only</span></label>
+                        <input type="number" id="quantum" name="quantum" value="2" min="1" step="1" inputmode="numeric">
+                        <p class="quantum-hint">
+                            A process that arrives exactly when a quantum expires joins the ready queue
+                            <strong>before</strong> the preempted process is added back.
+                        </p>
+                    </div>
+
+                    <div class="run-actions">
+                        <button type="button" class="btn btn-primary btn-lg" id="run-button">Run simulation</button>
+                        <span class="run-note">Runs the selected algorithm on the process list above.</span>
+                    </div>
+                </div>
+
+                <div id="run-error" class="form-error" role="alert" hidden></div>
+            </div>
+        </section>
+
+        <!-- ============================ RESULTS =========================== -->
+        <section id="results" class="section">
+            <div class="container">
+                <div class="section-heading">
+                    <div>
+                        <span class="eyebrow">Results</span>
+                        <h2>Simulation results</h2>
+                        <p>The Gantt chart, per-process metrics and averages for the last run.</p>
+                    </div>
+                    <span class="pill" id="result-badge" hidden></span>
+                </div>
+
+                <div id="results-empty" class="empty-state card">
+                    <span class="empty-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M4 19V5M4 19h16"></path>
+                            <path d="M7 15l4-5 3 3 4-6"></path>
+                        </svg>
+                    </span>
+                    <h3>No simulation yet</h3>
+                    <p>Add processes, choose an algorithm and press <strong>Run simulation</strong>.</p>
+                </div>
+
+                <div id="results-content" hidden>
+                    <div class="metric-grid">
+                        <div class="metric-card">
+                            <span class="metric-label">Average turnaround</span>
+                            <strong class="metric-value" id="metric-tat">&mdash;</strong>
+                            <span class="metric-formula">TAT = CT &minus; AT</span>
+                        </div>
+                        <div class="metric-card">
+                            <span class="metric-label">Average waiting</span>
+                            <strong class="metric-value" id="metric-wt">&mdash;</strong>
+                            <span class="metric-formula">WT = TAT &minus; BT</span>
+                        </div>
+                        <div class="metric-card">
+                            <span class="metric-label">Average response</span>
+                            <strong class="metric-value" id="metric-rt">&mdash;</strong>
+                            <span class="metric-formula">RT = first start &minus; AT</span>
+                        </div>
+                        <div class="metric-card metric-card-accent">
+                            <span class="metric-label">CPU utilization</span>
+                            <strong class="metric-value" id="metric-util">&mdash;</strong>
+                            <span class="metric-formula" id="metric-time-note">Busy &divide; elapsed</span>
+                        </div>
+                    </div>
+
+                    <div class="card gantt-card">
+                        <div class="card-head">
+                            <div>
+                                <h3>Gantt chart</h3>
+                                <span id="gantt-subtitle">Hover or focus a block to see its timing.</span>
+                            </div>
+                            <span class="pill" id="gantt-total"></span>
+                        </div>
+                        <div id="gantt-container"></div>
+                        <div id="gantt-legend" class="gantt-legend"></div>
+                    </div>
+
+                    <div class="card table-card">
+                        <div class="card-head">
+                            <div>
+                                <h3>Per-process metrics</h3>
+                                <span>CT = completion, TAT = turnaround, WT = waiting, RT = response</span>
+                            </div>
+                        </div>
+                        <div class="table-scroll">
+                            <table class="data-table result-table">
+                                <thead>
+                                    <tr>
+                                        <th>PID</th>
+                                        <th class="num">AT</th>
+                                        <th class="num">BT</th>
+                                        <th class="num">Priority</th>
+                                        <th class="num">Start</th>
+                                        <th class="num">CT</th>
+                                        <th class="num">TAT</th>
+                                        <th class="num">WT</th>
+                                        <th class="num">RT</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="result-tbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- =========================== COMPARISON ========================= -->
+        <section id="compare" class="section section-alt">
+            <div class="container">
+                <div class="section-heading">
+                    <div>
+                        <span class="eyebrow">Step 3</span>
+                        <h2>Algorithm comparison</h2>
+                        <p>Run all four algorithms on the same process list and the same Round Robin quantum.</p>
+                    </div>
+                    <button type="button" class="btn btn-primary" id="compare-button">Compare all four</button>
+                </div>
+
+                <div id="compare-error" class="form-error" role="alert" hidden></div>
+
+                <div id="compare-empty" class="empty-state card">
+                    <span class="empty-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M4 20V10M10 20V4M16 20v-7M22 20H2"></path>
+                        </svg>
+                    </span>
+                    <h3>Nothing to compare yet</h3>
+                    <p>Add processes, then press <strong>Compare all four</strong>. The quantum field above is reused for Round Robin.</p>
+                </div>
+
+                <div id="compare-content" hidden>
+                    <div id="best-callouts" class="best-grid"></div>
+
+                    <div class="card table-card">
+                        <div class="card-head">
+                            <div>
+                                <h3>Metrics side by side</h3>
+                                <span>Lower is better for TAT, WT and RT; higher is better for CPU utilization.</span>
+                            </div>
+                            <span class="pill" id="compare-badge"></span>
+                        </div>
+                        <div class="table-scroll">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Algorithm</th>
+                                        <th class="num">Avg TAT</th>
+                                        <th class="num">Avg WT</th>
+                                        <th class="num">Avg RT</th>
+                                        <th class="num">CPU utilization</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="compare-tbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="charts-grid">
+                        <div class="card chart-card">
+                            <div class="card-head">
+                                <h3>Average waiting time</h3>
+                                <span>Lower is better</span>
+                            </div>
+                            <div class="chart-box">
+                                <canvas id="chart-wt" role="img" aria-label="Bar chart of average waiting time by algorithm"></canvas>
+                            </div>
+                        </div>
+                        <div class="card chart-card">
+                            <div class="card-head">
+                                <h3>Average turnaround time</h3>
+                                <span>Lower is better</span>
+                            </div>
+                            <div class="chart-box">
+                                <canvas id="chart-tat" role="img" aria-label="Bar chart of average turnaround time by algorithm"></canvas>
+                            </div>
+                        </div>
+                        <div class="card chart-card">
+                            <div class="card-head">
+                                <h3>Average response time</h3>
+                                <span>Lower is better</span>
+                            </div>
+                            <div class="chart-box">
+                                <canvas id="chart-rt" role="img" aria-label="Bar chart of average response time by algorithm"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <p class="compare-note">
+                        The best bar in each chart is highlighted in green. A tie highlights every algorithm
+                        that shares the winning value. CPU utilization is shown in the table because, with no
+                        idle gaps, all four algorithms can reach 100%.
+                    </p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <div class="container footer-inner">
+            <div>
+                <strong>CPU Scheduler Lab</strong>
+                <p>An educational single-core CPU scheduling simulator built with Flask, vanilla JavaScript and Chart.js.</p>
+            </div>
+            <p class="footer-note">
+                Simulation only &mdash; it does not change how your operating system schedules real processes.
+            </p>
+        </div>
+    </footer>
+
+    <noscript>
+        <div class="noscript">This simulator needs JavaScript to run. Please enable JavaScript in your browser.</div>
+    </noscript>
+</body>
+</html>
