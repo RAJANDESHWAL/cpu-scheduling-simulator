@@ -41,16 +41,18 @@ The browser is **not** trusted to calculate results. It validates input for quic
 
 1. The user runs `python app.py`. Flask starts on `127.0.0.1:5000`.
 2. `GET /` calls `index()` and renders `templates/index.html`.
-3. The browser loads `style.css`, the Chart.js CDN script, then the local scripts with `defer`.
+3. An inline pre-CSS script applies the saved `localStorage` theme (or the system preference) so the page does not flash in the wrong mode.
+4. The browser loads `style.css`, the Chart.js CDN script, then the local scripts with `defer`.
    - `defer` preserves order, so `gantt.js` and `charts.js` load before `main.js`.
-4. `main.js` runs its IIFE:
+5. `main.js` runs its IIFE:
    - collects DOM elements into `elements`
    - creates the empty `state`
    - attaches event listeners
    - calls `renderProcessTable()` (shows the empty-state row)
+   - calls `setupTheme()` (syncs the toggle with the theme already applied)
    - calls `selectAlgorithm("fcfs")` (selects the FCFS card and hides the quantum field)
    - calls `setupScrollSpy()` (highlights the nav link for the visible section)
-5. The initial results and comparison sections show their empty states. No API call is made until the user acts.
+6. The initial results and comparison sections show their empty states. No API call is made until the user acts.
 
 ```mermaid
 sequenceDiagram
@@ -60,8 +62,9 @@ sequenceDiagram
     U->>B: Open http://127.0.0.1:5000
     B->>F: GET /
     F-->>B: index.html
+    B->>B: Apply saved or system theme
     B->>B: Load CSS, Chart.js CDN, gantt.js, charts.js, main.js
-    B->>B: renderProcessTable(), selectAlgorithm("fcfs"), setupScrollSpy()
+    B->>B: renderProcessTable(), setupTheme(), selectAlgorithm("fcfs"), setupScrollSpy()
     B-->>U: Empty simulator ready
 ```
 

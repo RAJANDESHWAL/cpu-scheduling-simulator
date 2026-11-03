@@ -3,9 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#0f766e">
+    <meta name="theme-color" content="#0f766e" id="theme-color-meta">
     <meta name="description" content="An interactive single-core CPU scheduling simulator for FCFS, SJF, SRTF, Round Robin, Priority and Preemptive Priority scheduling. Built with Flask and vanilla JavaScript.">
     <title>CPU Scheduler Lab | Operating Systems Mini Project</title>
+    <script>
+        // Apply the saved theme before CSS paints to avoid a light-mode flash.
+        (function () {
+            try {
+                var saved = localStorage.getItem("cpu-scheduler-theme");
+                var prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+                var theme = saved === "dark" || saved === "light" ? saved : (prefersDark ? "dark" : "light");
+                document.documentElement.setAttribute("data-theme", theme);
+            } catch (error) {
+                document.documentElement.setAttribute("data-theme", "light");
+            }
+        })();
+    </script>
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <!-- Chart.js is used only for the comparison bar charts. -->
@@ -40,6 +53,21 @@
                 <a class="nav-link" href="#results">Results</a>
                 <a class="nav-link" href="#compare">Compare</a>
             </nav>
+
+            <button type="button" class="theme-toggle" id="theme-toggle"
+                    aria-label="Switch to dark mode" aria-pressed="false" title="Switch to dark mode">
+                <svg class="theme-icon theme-icon-moon" viewBox="0 0 24 24" width="19" height="19"
+                     fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+                     aria-hidden="true">
+                    <path d="M21 12.8A8.5 8.5 0 1 1 11.2 3a6.6 6.6 0 0 0 9.8 9.8Z"></path>
+                </svg>
+                <svg class="theme-icon theme-icon-sun" viewBox="0 0 24 24" width="19" height="19"
+                     fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+                     aria-hidden="true">
+                    <circle cx="12" cy="12" r="4"></circle>
+                    <path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"></path>
+                </svg>
+            </button>
         </div>
     </header>
 

@@ -11,10 +11,6 @@
 
     var charts = {};
 
-    var BEST_COLOR = "#15803d";
-    var BEST_BORDER = "#166534";
-    var NORMAL_COLOR = "#5eead4";
-    var NORMAL_BORDER = "#0f766e";
     var SHORT_LABELS = {
         fcfs: "FCFS",
         sjf: "SJF",
@@ -23,6 +19,22 @@
         priority: "Priority",
         priority_preemptive: "Prem. Priority"
     };
+
+    function palette() {
+        var dark = document.documentElement.getAttribute("data-theme") === "dark";
+        return {
+            best: dark ? "#4ade80" : "#15803d",
+            bestBorder: dark ? "#86efac" : "#166534",
+            normal: dark ? "#2dd4bf" : "#5eead4",
+            normalBorder: dark ? "#5eead4" : "#0f766e",
+            axisText: dark ? "#cbd5e1" : "#475569",
+            tickText: dark ? "#94a3b8" : "#64748b",
+            grid: dark ? "#334155" : "#e2e8f0",
+            tooltipBackground: dark ? "#e2e8f0" : "#0f172a",
+            tooltipTitle: dark ? "#102033" : "#ffffff",
+            tooltipBody: dark ? "#334155" : "#e2e8f0"
+        };
+    }
 
     function isBest(bestList, algorithmName) {
         return Array.isArray(bestList) && bestList.indexOf(algorithmName) !== -1;
@@ -54,11 +66,12 @@
             return;
         }
 
+        var colors = palette();
         var backgrounds = algorithms.map(function (name) {
-            return isBest(bestList, name) ? BEST_COLOR : NORMAL_COLOR;
+            return isBest(bestList, name) ? colors.best : colors.normal;
         });
         var borders = algorithms.map(function (name) {
-            return isBest(bestList, name) ? BEST_BORDER : NORMAL_BORDER;
+            return isBest(bestList, name) ? colors.bestBorder : colors.normalBorder;
         });
 
         charts[key] = new Chart(canvas.getContext("2d"), {
@@ -84,6 +97,9 @@
                 plugins: {
                     legend: { display: false },
                     tooltip: {
+                        backgroundColor: colors.tooltipBackground,
+                        titleColor: colors.tooltipTitle,
+                        bodyColor: colors.tooltipBody,
                         callbacks: {
                             label: function (context) {
                                 return metricLabel + ": " + Number(context.parsed.y).toFixed(2) + suffix;
@@ -95,7 +111,7 @@
                     x: {
                         grid: { display: false },
                         ticks: {
-                            color: "#475569",
+                            color: colors.axisText,
                             font: { size: 10.5 },
                             maxRotation: 20,
                             minRotation: 0
@@ -104,9 +120,9 @@
                     y: {
                         beginAtZero: true,
                         border: { display: false },
-                        grid: { color: "#e2e8f0" },
+                        grid: { color: colors.grid },
                         ticks: {
-                            color: "#64748b",
+                            color: colors.tickText,
                             font: { size: 10 },
                             callback: function (value) {
                                 return value + suffix;

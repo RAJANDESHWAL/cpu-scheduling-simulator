@@ -44,6 +44,7 @@ The application is served locally by **Flask** and runs entirely in a web browse
 - **One-click sample workload** and **clear-all**.
 - **Inline validation** on the page (no browser `alert()` popups).
 - **Responsive layout** for desktop, tablet and mobile.
+- **Light / dark theme** via a header toggle, with a saved preference and system-theme default.
 - **57 automated Python tests** covering algorithms, metrics, edge cases and API validation.
 
 ---
@@ -124,7 +125,9 @@ cpu-scheduler-simulator/
     ├── VIVA_PREPARATION.md     93 viva questions and answers
     ├── TEST_CASES.md           Hand-verified test cases and expected outputs
     ├── CPU_Scheduler_Project_Workflow.pdf    Printable workflow and algorithm guide
-    └── CPU_Scheduler_Project_Workflow.html   Editable source for the PDF
+    ├── CPU_Scheduler_Project_Workflow.html   Editable source for the PDF
+    ├── CPU_Scheduler_Lab_IEEE_Report.docx    IEEE-style project report
+    └── figures/                  Figures used by the IEEE report
 ```
 
 ### Why this structure?
@@ -266,6 +269,7 @@ The page loads Chart.js from `https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/c
 5. **Run.** Press **Run simulation**. The page shows the Gantt chart, per-process metrics and averages.
 6. **Compare.** Press **Compare all six** to run every algorithm on the same list. The best value in each metric is highlighted.
 7. **Start over.** Press **Clear all** to empty the process list.
+8. **Switch theme.** Use the sun/moon button in the header. The choice is saved in `localStorage`; on a first visit the system theme is used.
 
 Validation errors appear next to the form or the relevant action button. The browser never uses `alert()`.
 
@@ -367,3 +371,4 @@ The hand calculations for these values are in [TEST_CASES.md](TEST_CASES.md).
 | [VIVA_PREPARATION.md](VIVA_PREPARATION.md) | 93 questions with simple, technically correct answers |
 | [TEST_CASES.md](TEST_CASES.md) | Hand-verified inputs, outputs, Gantt charts and validation cases |
 | [CPU_Scheduler_Project_Workflow.pdf](CPU_Scheduler_Project_Workflow.pdf) | Printable 11-page workflow, algorithm and formula guide |
+| [CPU_Scheduler_Lab_IEEE_Report.docx](CPU_Scheduler_Lab_IEEE_Report.docx) | Editable IEEE-style project report with figures, tables and references |

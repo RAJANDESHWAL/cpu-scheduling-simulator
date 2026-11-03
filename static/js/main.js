@@ -68,7 +68,9 @@
         compareContent: document.getElementById("compare-content"),
         compareBadge: document.getElementById("compare-badge"),
         bestCallouts: document.getElementById("best-callouts"),
-        compareTbody: document.getElementById("compare-tbody")
+        compareTbody: document.getElementById("compare-tbody"),
+        themeToggle: document.getElementById("theme-toggle"),
+        themeColorMeta: document.getElementById("theme-color-meta")
     };
 
     var reducedMotion = window.matchMedia
@@ -132,6 +134,67 @@
             behavior: reducedMotion ? "auto" : "smooth",
             block: "start"
         });
+    }
+
+    /* ------------------------------ Theme ------------------------------ */
+
+    function currentTheme() {
+        return document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light";
+    }
+
+    function applyTheme(theme, persist) {
+        var isDark = theme === "dark";
+        document.documentElement.setAttribute("data-theme", isDark ? "dark" : "light");
+
+        if (elements.themeColorMeta) {
+            elements.themeColorMeta.setAttribute("content", isDark ? "#0b1220" : "#0f766e");
+        }
+
+        if (elements.themeToggle) {
+            var label = isDark ? "Switch to light mode" : "Switch to dark mode";
+            elements.themeToggle.setAttribute("aria-pressed", isDark ? "true" : "false");
+            elements.themeToggle.setAttribute("aria-label", label);
+            elements.themeToggle.setAttribute("title", label);
+        }
+
+        if (persist) {
+            try {
+                localStorage.setItem("cpu-scheduler-theme", isDark ? "dark" : "light");
+            } catch (error) {
+                // A private browser session may block localStorage; the theme still changes for this page.
+            }
+        }
+
+        // Chart.js colors are supplied by JavaScript, so redraw an open comparison.
+        if (
+            state.lastComparison &&
+            window.ComparisonCharts &&
+            elements.compareContent &&
+            !elements.compareContent.hidden
+        ) {
+            window.ComparisonCharts.render(state.lastComparison.results, state.lastComparison.best);
+        }
+    }
+
+    function setupTheme() {
+        var saved = null;
+        try {
+            saved = localStorage.getItem("cpu-scheduler-theme");
+        } catch (error) {
+            saved = null;
+        }
+
+        if (saved !== "dark" && saved !== "light") {
+            saved = currentTheme();
+        }
+
+        applyTheme(saved, false);
+
+        if (elements.themeToggle) {
+            elements.themeToggle.addEventListener("click", function () {
+                applyTheme(currentTheme() === "dark" ? "light" : "dark", true);
+            });
+        }
     }
 
     function readIntegerField(input, label, minimum, rangeMessage) {
@@ -674,6 +737,7 @@
     elements.compareButton.addEventListener("click", compareAlgorithms);
 
     renderProcessTable();
+    setupTheme();
     selectAlgorithm("fcfs");
     setupScrollSpy();
 })();

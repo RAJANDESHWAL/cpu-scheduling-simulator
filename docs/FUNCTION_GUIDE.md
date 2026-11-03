@@ -506,6 +506,27 @@ All functions are inside an IIFE, so the global namespace only receives DOM even
 - **Internal working:** uses `scrollIntoView`; uses `auto` instead of `smooth` when the user prefers reduced motion.
 - **Called by:** `loadSample`, `runSimulation`, `compareAlgorithms`.
 
+### `currentTheme()`
+
+- **Purpose:** Return `"dark"` or `"light"` from the document's `data-theme` attribute.
+- **Returns:** string.
+- **Called by:** `applyTheme`, `setupTheme`.
+
+### `applyTheme(theme, persist)`
+
+- **Purpose:** Apply a theme, update the toggle's accessible label, update the browser theme colour, and optionally save the choice.
+- **Parameters:** `"dark"`/`"light"`, and a boolean that controls `localStorage` persistence.
+- **Returns:** none.
+- **Internal working:** sets `data-theme` on `<html>`, updates `aria-pressed`, `aria-label`, `title` and `#theme-color-meta`, stores `cpu-scheduler-theme` when requested, and redraws an open Chart.js comparison using `ComparisonCharts.render`.
+- **Called by:** `setupTheme` and the theme toggle click handler.
+
+### `setupTheme()`
+
+- **Purpose:** Initialise the saved or system theme and wire the header toggle.
+- **Returns:** none.
+- **Internal working:** reads `cpu-scheduler-theme` (silently falls back if storage is blocked), applies it without re-saving, then registers the click handler that toggles and persists the new theme.
+- **Called by:** initial startup.
+
 ### `readIntegerField(input, label, minimum, rangeMessage)`
 
 - **Purpose:** Client-side whole-number parsing and range validation.
@@ -688,7 +709,7 @@ All functions are inside an IIFE, so the global namespace only receives DOM even
 
 ### Startup and event wiring
 
-At the bottom of the IIFE, listeners are attached for the form submit, Cancel button, table clicks, sample/clear buttons, algorithm radios, quantum input, and run/compare buttons. Startup calls `renderProcessTable()`, `selectAlgorithm("fcfs")` and `setupScrollSpy()`.
+At the bottom of the IIFE, listeners are attached for the form submit, Cancel button, table clicks, sample/clear buttons, algorithm radios, quantum input, theme toggle, and run/compare buttons. Startup calls `renderProcessTable()`, `setupTheme()`, `selectAlgorithm("fcfs")` and `setupScrollSpy()`.
 
 ---
 
@@ -770,7 +791,13 @@ The module exports `window.GanttChart = { render: render }`.
 
 ---
 
-## 7. `static/js/charts.js` — Chart.js comparison charts
+## 7. `static/js/charts.js` - Chart.js comparison charts
+
+### `palette()`
+
+- **Purpose:** Return theme-aware chart colours for bars, borders, ticks, grid lines and tooltips.
+- **Returns:** object of colour strings, selected from `data-theme`.
+- **Called by:** `makeChart`.
 
 ### `isBest(bestList, algorithmName)`
 
