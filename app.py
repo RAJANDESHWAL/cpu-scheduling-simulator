@@ -19,7 +19,11 @@ import re
 
 from flask import Flask, jsonify, render_template, request
 
-from scheduler.algorithms import ALGORITHM_LABELS, run_algorithm
+from scheduler.algorithms import (
+    ALGORITHM_LABELS,
+    pid_sort_key,
+    run_algorithm,
+)
 from scheduler.metrics import calculate_metrics, find_best_algorithms
 
 app = Flask(__name__)
@@ -35,6 +39,7 @@ ALLOWED_ALGORITHMS = (
     "priority",
     "priority_preemptive",
 )
+PRIORITY_ALGORITHMS = ("priority", "priority_preemptive")
 MAX_PROCESSES = 100
 PID_PATTERN = re.compile(r"^[A-Za-z0-9_-]{1,16}$")
 
@@ -88,10 +93,10 @@ def validate_processes(raw_processes):
     Checks performed
     ----------------
     * the list exists, is a JSON array, is not empty and has <= 100 items
-    * each item is an object with PID / arrival / burst / priority
+    * each item is an object with PID / arrival / burst and optional priority
     * PID is 1-16 letters, digits, hyphens or underscores and not "Idle"
     * PIDs are unique (case-insensitive)
-    * arrival >= 0, burst > 0, priority >= 0
+    * arrival >= 0, burst > 0, priority >= 0 when provided
     * every time value is a whole number
 
     Returns a new list of clean dictionaries; the caller's data is untouched.
@@ -131,13 +136,20 @@ def validate_processes(raw_processes):
 
         arrival = parse_int(item.get("arrival"), f"Process '{pid}': Arrival time")
         burst = parse_int(item.get("burst"), f"Process '{pid}': Burst time")
-        priority = parse_int(item.get("priority"), f"Process '{pid}': Priority")
+
+        raw_priority = item.get("priority")
+        if raw_priority is None or (
+            isinstance(raw_priority, str) and raw_priority.strip() == ""
+        ):
+            priority = None
+        else:
+            priority = parse_int(raw_priority, f"Process '{pid}': Priority")
 
         if arrival < 0:
             raise ValidationError(f"Process '{pid}': Arrival time cannot be negative.")
         if burst <= 0:
             raise ValidationError(f"Process '{pid}': Burst time must be greater than 0.")
-        if priority < 0:
+        if priority is not None and priority < 0:
             raise ValidationError(f"Process '{pid}': Priority cannot be negative.")
 
         cleaned.append(
@@ -158,6 +170,33 @@ def read_request_body():
     if not isinstance(data, dict):
         raise ValidationError("Send a JSON object with a 'processes' array.")
     return data
+
+
+def format_pid_list(pids):
+    """Format process IDs as 'P2', 'P2 and P4', or 'P2, P4 and P6'."""
+    if len(pids) == 1:
+        return pids[0]
+    if len(pids) == 2:
+        return f"{pids[0]} and {pids[1]}"
+    return ", ".join(pids[:-1]) + f" and {pids[-1]}"
+
+
+def ensure_priorities(processes, action):
+    """
+    Reject a priority-based request if any process has no priority.
+
+    Non-priority algorithms never call this helper, so FCFS, SJF, SRTF and
+    Round Robin continue to work with optional priority values.
+    """
+    missing = sorted(
+        [process["pid"] for process in processes if process["priority"] is None],
+        key=pid_sort_key,
+    )
+    if missing:
+        raise ValidationError(
+            f"Priority values are missing for {format_pid_list(missing)}. "
+            f"Please update these processes before {action}."
+        )
 
 
 @app.get("/")
@@ -193,6 +232,9 @@ def api_schedule():
                 "Choose a valid algorithm: fcfs, sjf, srtf, rr, priority or priority_preemptive."
             )
 
+        if algorithm_key in PRIORITY_ALGORITHMS:
+            ensure_priorities(processes, "running this algorithm")
+
         quantum = validate_quantum(data.get("quantum")) if algorithm_key == "rr" else None
 
         schedule = run_algorithm(algorithm_key, processes, quantum)
@@ -218,6 +260,7 @@ def api_compare():
     try:
         data = read_request_body()
         processes = validate_processes(data.get("processes"))
+        ensure_priorities(processes, "running the comparison")
         quantum = validate_quantum(data.get("quantum"))
 
         results = []

@@ -50,6 +50,16 @@ SAMPLE = [
     {"pid": "P5", "arrival": 4, "burst": 5, "priority": 4},
 ]
 
+SAMPLE_WITHOUT_PRIORITY = [
+    dict(process, priority=None) for process in SAMPLE
+]
+
+# P1, P3 and P5 keep priorities; P2 and P4 are deliberately left blank.
+MIXED_PRIORITY = [
+    dict(process, priority=None) if process["pid"] in {"P2", "P4"} else dict(process)
+    for process in SAMPLE
+]
+
 IDLE_CASE = [
     {"pid": "P1", "arrival": 0, "burst": 2, "priority": 1},
     {"pid": "P2", "arrival": 5, "burst": 3, "priority": 2},
@@ -697,6 +707,16 @@ def test_api_schedule_fcfs(client):
     assert data["metrics"]["avg_turnaround_time"] == pytest.approx(6.8)
     assert len(data["timeline"]) == 5
 
+    # Priority is optional for all non-priority algorithms.
+    for algorithm in ("fcfs", "sjf", "srtf"):
+        response = client.post(
+            "/api/schedule",
+            json={"processes": SAMPLE_WITHOUT_PRIORITY, "algorithm": algorithm},
+        )
+        assert response.status_code == 200
+        data = response.get_json()
+        assert all(process["priority"] is None for process in data["processes"])
+
 
 def test_api_schedule_round_robin(client):
     response = client.post(
@@ -707,6 +727,14 @@ def test_api_schedule_round_robin(client):
     data = response.get_json()
     assert data["quantum"] == 2
     assert data["metrics"]["avg_response_time"] == pytest.approx(2.4)
+
+    # Round Robin needs a quantum but does not need priority values.
+    response = client.post(
+        "/api/schedule",
+        json={"processes": SAMPLE_WITHOUT_PRIORITY, "algorithm": "rr", "quantum": 2},
+    )
+    assert response.status_code == 200
+    assert all(process["priority"] is None for process in response.get_json()["processes"])
 
 
 def test_api_schedule_srtf(client):
@@ -733,6 +761,17 @@ def test_api_schedule_preemptive_priority(client):
     assert data["metrics"]["avg_response_time"] == pytest.approx(3.4)
     assert len(data["timeline"]) == 6
 
+    # Both priority algorithms reject the same incomplete priority data.
+    for algorithm in ("priority", "priority_preemptive"):
+        response = client.post(
+            "/api/schedule",
+            json={"processes": MIXED_PRIORITY, "algorithm": algorithm},
+        )
+        assert response.status_code == 400
+        error = response.get_json()["error"]
+        assert "P2 and P4" in error
+        assert "running this algorithm" in error
+
 
 def test_api_compare(client):
     response = client.post(
@@ -752,6 +791,16 @@ def test_api_compare(client):
         "Preemptive Priority",
     ]
     assert data["best"]["avg_turnaround_time"] == ["SRTF"]
+
+    # Comparison includes priority algorithms, so every priority is required.
+    response = client.post(
+        "/api/compare",
+        json={"processes": MIXED_PRIORITY, "quantum": 2},
+    )
+    assert response.status_code == 400
+    error = response.get_json()["error"]
+    assert "Priority values are missing for P2 and P4" in error
+    assert "running the comparison" in error
 
 
 @pytest.mark.parametrize(
@@ -780,7 +829,7 @@ def test_api_schedule_rejects_bad_settings(client, payload, expected_fragment):
         ({"pid": "", "arrival": 0, "burst": 2, "priority": 1}, "required"),
         ({"pid": "P1", "arrival": "abc", "burst": 2, "priority": 1}, "whole number"),
         ({"pid": "P1", "arrival": 0, "burst": 2.5, "priority": 1}, "whole number"),
-        ({"pid": "P1", "arrival": 0, "burst": 2}, "required"),
+        ({"pid": "P1", "arrival": 0, "burst": 2, "priority": "abc"}, "whole number"),
         ({"pid": "Idle", "arrival": 0, "burst": 2, "priority": 1}, "reserved"),
         ({"pid": "P 1", "arrival": 0, "burst": 2, "priority": 1}, "invalid"),
     ],

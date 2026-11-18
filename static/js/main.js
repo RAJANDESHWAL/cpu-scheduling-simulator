@@ -25,7 +25,8 @@
         editIndex: null,
         selectedAlgorithm: "fcfs",
         lastResult: null,
-        lastComparison: null
+        lastComparison: null,
+        highlightMissingPriority: false
     };
 
     var elements = {
@@ -49,6 +50,7 @@
         quantum: document.getElementById("quantum"),
         runButton: document.getElementById("run-button"),
         runError: document.getElementById("run-error"),
+        priorityError: document.getElementById("priority-error"),
         resultsEmpty: document.getElementById("results-empty"),
         resultsContent: document.getElementById("results-content"),
         resultBadge: document.getElementById("result-badge"),
@@ -216,6 +218,51 @@
         return value;
     }
 
+    function isPriorityAlgorithm(algorithmKey) {
+        return algorithmKey === "priority" || algorithmKey === "priority_preemptive";
+    }
+
+    function missingPriorityProcesses() {
+        return state.processes.filter(function (process) {
+            return process.priority === null || process.priority === undefined;
+        });
+    }
+
+    function formatPidList(pids) {
+        if (pids.length === 1) {
+            return pids[0];
+        }
+        if (pids.length === 2) {
+            return pids[0] + " and " + pids[1];
+        }
+        return pids.slice(0, -1).join(", ") + " and " + pids[pids.length - 1];
+    }
+
+    function priorityErrorMessage(action) {
+        var pids = missingPriorityProcesses().map(function (process) {
+            return process.pid;
+        });
+        pids.sort(function (a, b) {
+            return a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" });
+        });
+        return "Priority values are missing for " + formatPidList(pids) +
+            ". Please update these processes before " + action + ".";
+    }
+
+    function refreshPriorityFeedback() {
+        var missing = missingPriorityProcesses();
+        var needsPriority = isPriorityAlgorithm(state.selectedAlgorithm);
+
+        state.highlightMissingPriority = needsPriority && missing.length > 0;
+        renderProcessTable();
+
+        if (state.highlightMissingPriority) {
+            showError(elements.priorityError, priorityErrorMessage("running this algorithm"));
+        } else {
+            hideError(elements.priorityError);
+        }
+    }
+
     /* --------------------------- Process table -------------------------- */
 
     function renderProcessTable() {
@@ -229,12 +276,20 @@
         }
 
         elements.processTbody.innerHTML = state.processes.map(function (process, index) {
+            var missingPriority = process.priority === null || process.priority === undefined;
+            var rowClass = state.highlightMissingPriority && missingPriority
+                ? ' class="missing-priority"'
+                : "";
             return (
-                "<tr>" +
+                "<tr" + rowClass + ">" +
                 '<td><span class="pid-chip">' + escapeHtml(process.pid) + "</span></td>" +
                 '<td class="num">' + process.arrival + "</td>" +
                 '<td class="num">' + process.burst + "</td>" +
-                '<td class="num">' + process.priority + "</td>" +
+                '<td class="num priority-cell">' +
+                    (missingPriority
+                        ? '<span class="missing-value">\u2014</span>'
+                        : process.priority) +
+                "</td>" +
                 '<td><div class="row-actions">' +
                 '<button type="button" class="icon-btn" data-action="edit" data-index="' + index +
                 '" aria-label="Edit ' + escapeHtml(process.pid) + '">Edit</button>' +
@@ -271,12 +326,15 @@
             1,
             "Burst time must be greater than 0."
         );
-        var priority = readIntegerField(
-            elements.priority,
-            "Priority",
-            0,
-            "Priority cannot be negative."
-        );
+        var priorityText = elements.priority.value.trim();
+        var priority = priorityText === ""
+            ? null
+            : readIntegerField(
+                elements.priority,
+                "Priority",
+                0,
+                "Priority cannot be negative."
+            );
 
         return { pid: pid, arrival: arrival, burst: burst, priority: priority };
     }
@@ -316,8 +374,8 @@
             }
 
             resetForm();
-            renderProcessTable();
             invalidateResults();
+            refreshPriorityFeedback();
             elements.pid.focus();
         } catch (error) {
             showError(elements.formError, error.message);
@@ -334,7 +392,9 @@
         elements.pid.value = process.pid;
         elements.arrival.value = String(process.arrival);
         elements.burst.value = String(process.burst);
-        elements.priority.value = String(process.priority);
+        elements.priority.value = process.priority === null || process.priority === undefined
+            ? ""
+            : String(process.priority);
 
         elements.submit.textContent = "Update process";
         elements.cancel.hidden = false;
@@ -374,8 +434,8 @@
             }
         }
 
-        renderProcessTable();
         invalidateResults();
+        refreshPriorityFeedback();
         showNotice(removedPid + " removed from the process list.");
     }
 
@@ -390,8 +450,8 @@
         });
 
         resetForm();
-        renderProcessTable();
         invalidateResults();
+        refreshPriorityFeedback();
         showNotice("Sample workload loaded: 5 processes. Choose an algorithm and run the simulation.");
         scrollToElement(document.getElementById("processes"));
     }
@@ -404,8 +464,8 @@
 
         state.processes = [];
         resetForm();
-        renderProcessTable();
         invalidateResults();
+        refreshPriorityFeedback();
         showNotice("All processes cleared.");
     }
 
@@ -420,6 +480,7 @@
 
         elements.quantumField.hidden = algorithmKey !== "rr";
         invalidateResults();
+        refreshPriorityFeedback();
     }
 
     function readQuantum() {
@@ -526,6 +587,7 @@
 
     async function runSimulation() {
         hideError(elements.runError);
+        hideError(elements.priorityError);
         hideNotice();
 
         if (state.processes.length === 0) {
@@ -536,6 +598,16 @@
             scrollToElement(document.getElementById("processes"));
             return;
         }
+
+        if (isPriorityAlgorithm(state.selectedAlgorithm) && missingPriorityProcesses().length > 0) {
+            state.highlightMissingPriority = true;
+            renderProcessTable();
+            showError(elements.priorityError, priorityErrorMessage("running this algorithm"));
+            return;
+        }
+
+        state.highlightMissingPriority = false;
+        renderProcessTable();
 
         var quantum = null;
         if (state.selectedAlgorithm === "rr") {
@@ -644,6 +716,16 @@
             scrollToElement(document.getElementById("processes"));
             return;
         }
+
+        if (missingPriorityProcesses().length > 0) {
+            state.highlightMissingPriority = true;
+            renderProcessTable();
+            showError(elements.compareError, priorityErrorMessage("running the comparison"));
+            return;
+        }
+
+        state.highlightMissingPriority = false;
+        renderProcessTable();
 
         var quantum;
         try {

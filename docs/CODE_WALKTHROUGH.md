@@ -73,19 +73,19 @@ sequenceDiagram
 ## 3. Adding a process
 
 ```text
-User fills PID / arrival / burst / priority
+User fills PID / arrival / burst and optional priority
         │
         ▼
 handleFormSubmit
         ├── readProcessForm
         │     ├── PID: non-empty, pattern, not "Idle"
-        │     └── readIntegerField × 3 (arrival ≥ 0, burst > 0, priority ≥ 0)
+        │     ├── readIntegerField for arrival ≥ 0 and burst > 0
+        │     └── optional priority: blank → null, otherwise integer ≥ 0
         ├── duplicate PID check (case-insensitive, ignoring the row being edited)
         ├── push or replace in state.processes
         ├── showNotice
         ├── resetForm
-        ├── renderProcessTable
-        └── invalidateResults
+        └── refreshPriorityFeedback
 ```
 
 The process list lives only in `state.processes`. There is no database and no POST to save a process. The list is sent in full with each simulation request.
@@ -123,8 +123,9 @@ POST /api/schedule
         ▼
 api_schedule
         ├── read_request_body           (must be a JSON object)
-        ├── validate_processes          (shape, IDs, ranges, duplicates)
+        ├── validate_processes          (shape, IDs, ranges, duplicates; priority optional)
         ├── algorithm in ALLOWED_ALGORITHMS?
+        ├── priority algorithm? → ensure_priorities
         ├── if rr: validate_quantum
         ├── run_algorithm
         │     ├── fcfs
@@ -249,7 +250,7 @@ compareAlgorithms
 
 ### 5.2 Server steps
 
-`api_compare` validates **once**, then loops over `("fcfs", "sjf", "srtf", "rr", "priority", "priority_preemptive")`. Each call goes through `run_algorithm` → `calculate_metrics`. Only `algorithm_key`, `algorithm`, `quantum` and `metrics` are kept. Finally `find_best_algorithms` selects the winners.
+`api_compare` validates **once**, requires every priority (because both priority algorithms are included), then loops over `("fcfs", "sjf", "srtf", "rr", "priority", "priority_preemptive")`. Each call goes through `run_algorithm` → `calculate_metrics`. Only `algorithm_key`, `algorithm`, `quantum` and `metrics` are kept. Finally `find_best_algorithms` selects the winners.
 
 ```mermaid
 flowchart LR
@@ -654,6 +655,7 @@ flowchart TD
 
 | Situation | Where it is detected | What the user sees |
 |---|---|---|
+| Missing priority | `runSimulation` / `compareAlgorithms` and `ensure_priorities` | Inline priority warning naming every affected process |
 | Empty process list | `runSimulation` / `compareAlgorithms` and `validate_processes` | Inline message near the action button |
 | Negative arrival | `readIntegerField` and `validate_processes` | Inline form/run error |
 | Burst 0 | Client and server | "Burst time must be greater than 0." |

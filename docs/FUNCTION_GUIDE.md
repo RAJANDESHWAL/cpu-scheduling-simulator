@@ -17,7 +17,7 @@ Understanding these shapes makes every function below easier to follow.
     "pid": "P1",       # string, 1-16 letters/digits/_/-, not "Idle"
     "arrival": 0,      # whole number >= 0
     "burst": 4,        # whole number > 0
-    "priority": 2      # whole number >= 0, lower number = higher priority
+    "priority": 2      # optional whole number >= 0; required only by priority policies
 }
 ```
 
@@ -146,12 +146,20 @@ The same dictionary with three extra fields per process (`turnaround_time`, `wai
   4. Trim the PID; reject empty IDs, IDs longer than 16 characters or containing anything outside letters/digits/`_`/`-`.
   5. Reject the reserved ID `Idle` (case-insensitive).
   6. Reject duplicate PIDs case-insensitively using a `seen_pids` set.
-  7. Parse arrival, burst and priority with `parse_int`.
-  8. Enforce arrival ≥ 0, burst > 0 and priority ≥ 0.
+  7. Parse arrival and burst with `parse_int`.
+  8. Treat a missing or empty priority as `None`; otherwise parse it as a whole number and require `priority >= 0`.
   9. Append a clean dictionary.
 - **Data structures:** `cleaned` list, `seen_pids` set.
 - **Calls:** `parse_int`, `ValidationError`.
 - **Called by:** `api_schedule`, `api_compare`.
+
+### `ensure_priorities(processes, action)`
+
+- **Purpose:** Reject a priority-based request when any process has no priority value.
+- **Parameters:** validated process list, and a phrase such as `"running this algorithm"` or `"running the comparison"`.
+- **Returns:** none.
+- **Internal working:** collects the PIDs whose `priority` is `None`, sorts them naturally, and raises `ValidationError` with a message naming every affected process.
+- **Called by:** `api_schedule` for `priority`/`priority_preemptive`, and `api_compare`.
 
 ### `read_request_body()`
 
@@ -180,11 +188,12 @@ The same dictionary with three extra fields per process (`turnaround_time`, `wai
   1. `read_request_body()`.
   2. `validate_processes(...)`.
   3. Lowercase the algorithm and check it is in `ALLOWED_ALGORITHMS`.
-  4. If `rr`, validate the quantum; otherwise pass `None`.
-  5. `run_algorithm(...)` → raw schedule.
-  6. `calculate_metrics(...)` → final schedule.
-  7. `jsonify(...)`.
-  8. Catch `ValidationError` and `ValueError` and return `error_response`.
+  4. For Priority or Preemptive Priority, call `ensure_priorities`.
+  5. If `rr`, validate the quantum; otherwise pass `None`.
+  6. `run_algorithm(...)` → raw schedule.
+  7. `calculate_metrics(...)` → final schedule.
+  8. `jsonify(...)`.
+  9. Catch `ValidationError` and `ValueError` and return `error_response`.
 - **Calls:** `read_request_body`, `validate_processes`, `validate_quantum`, `run_algorithm`, `calculate_metrics`, `error_response`.
 - **Called by:** `main.js → runSimulation → postJSON`.
 
@@ -192,7 +201,7 @@ The same dictionary with three extra fields per process (`turnaround_time`, `wai
 
 - **Purpose:** Run all six algorithms on the same process list and quantum.
 - **Route:** `POST /api/compare`
-- **Request fields:** `processes`, `quantum` (always required because Round Robin is included).
+- **Request fields:** `processes`, `quantum` (always required because Round Robin is included; every process must have a priority).
 - **Returns:** HTTP 200 JSON:
   ```json
   {
@@ -214,7 +223,7 @@ The same dictionary with three extra fields per process (`turnaround_time`, `wai
     }
   }
   ```
-- **Internal working:** validates once, then loops over `ALLOWED_ALGORITHMS`, runs each algorithm with the shared quantum, calls `calculate_metrics`, keeps only the fields needed for comparison, and calls `find_best_algorithms(results)`.
+- **Internal working:** validates once, calls `ensure_priorities` because both priority algorithms are in the comparison, validates the shared quantum, then loops over `ALLOWED_ALGORITHMS`, runs each algorithm, calls `calculate_metrics`, keeps only the fields needed for comparison, and calls `find_best_algorithms(results)`.
 - **Calls:** `read_request_body`, `validate_processes`, `validate_quantum`, `run_algorithm`, `calculate_metrics`, `find_best_algorithms`, `error_response`.
 - **Called by:** `main.js → compareAlgorithms → postJSON`.
 
@@ -535,22 +544,50 @@ All functions are inside an IIFE, so the global namespace only receives DOM even
 - **Internal working:** trims; rejects empty and non-matching `^[+-]?\d+$`; uses `Number.isSafeInteger`; checks the minimum and throws an `Error` with a user-friendly message.
 - **Called by:** `readProcessForm`, `readQuantum`.
 
+### `isPriorityAlgorithm(algorithmKey)`
+
+- **Purpose:** Return true for `priority` and `priority_preemptive`.
+- **Parameters:** algorithm key.
+- **Returns:** boolean.
+- **Called by:** `refreshPriorityFeedback`, `runSimulation`.
+
+### `missingPriorityProcesses()`
+
+- **Purpose:** Return all processes whose priority is `null` or `undefined`.
+- **Returns:** array of process objects.
+- **Called by:** `refreshPriorityFeedback`, `priorityErrorMessage`, `runSimulation`, `compareAlgorithms`.
+
+### `priorityErrorMessage(action)`
+
+- **Purpose:** Build the inline message that names every process with a missing priority.
+- **Parameters:** action phrase such as `"running this algorithm"` or `"running the comparison"`.
+- **Returns:** message string.
+- **Internal working:** sorts PIDs naturally and formats one, two or many IDs (`P2`, `P2 and P4`, `P2, P4 and P5`).
+- **Called by:** `refreshPriorityFeedback`, `runSimulation`, `compareAlgorithms`.
+
+### `refreshPriorityFeedback()`
+
+- **Purpose:** Keep priority-row highlighting and the priority warning synchronized with the selected algorithm and process list.
+- **Returns:** none.
+- **Internal working:** highlights missing-priority rows only when a priority algorithm is selected, redraws the table, and shows/hides `#priority-error`.
+- **Called by:** `selectAlgorithm`, form submit, delete, sample load, clear-all.
+
 ### `renderProcessTable()`
 
 - **Purpose:** Redraw the editable process table and count badge.
 - **Parameters:** none (reads `state.processes`).
 - **Returns:** none.
-- **Internal working:** for zero rows, writes one `colspan="5"` empty-state row. Otherwise maps each process to a `<tr>` with a PID chip, arrival, burst, priority, and Edit/Delete buttons carrying `data-action` and `data-index`. All PIDs are escaped.
-- **Data structures:** `state.processes`.
+- **Internal working:** for zero rows, writes one `colspan="5"` empty-state row. Otherwise maps each process to a `<tr>` with a PID chip, arrival, burst, priority, and Edit/Delete buttons carrying `data-action` and `data-index`. Missing priorities render as `—`; when a priority algorithm is selected, affected rows receive `missing-priority`. All PIDs are escaped.
+- **Data structures:** `state.processes`, `state.highlightMissingPriority`.
 - **Calls:** `escapeHtml`.
-- **Called by:** `handleFormSubmit`, `handleTableClick`, `loadSample`, `clearAllProcesses`, and initial startup.
+- **Called by:** `refreshPriorityFeedback`, `handleFormSubmit`, `handleTableClick`, `loadSample`, `clearAllProcesses`, and initial startup.
 
 ### `readProcessForm()`
 
-- **Purpose:** Read and validate the four input fields.
+- **Purpose:** Read and validate the input fields.
 - **Parameters:** none.
-- **Returns:** `{pid, arrival, burst, priority}`.
-- **Internal working:** trims the PID; checks non-empty, the 1-16 character pattern and the reserved `Idle`; calls `readIntegerField` for arrival (min 0), burst (min 1) and priority (min 0).
+- **Returns:** `{pid, arrival, burst, priority}`; priority is `null` when blank.
+- **Internal working:** trims the PID; checks non-empty, the 1-16 character pattern and the reserved `Idle`; calls `readIntegerField` for arrival (min 0) and burst (min 1); parses priority only when the field is non-empty, otherwise stores `null`.
 - **Calls:** `readIntegerField`, `Error`.
 - **Called by:** `handleFormSubmit`.
 
@@ -574,7 +611,7 @@ All functions are inside an IIFE, so the global namespace only receives DOM even
   4. Push or replace the process.
   5. Show a notice, reset the form, redraw the table, invalidate old results, and focus the PID field.
   6. Catch validation errors and show them in `#form-error`.
-- **Calls:** `readProcessForm`, `showNotice`, `showError`, `hideError`, `hideNotice`, `resetForm`, `renderProcessTable`, `invalidateResults`.
+- **Calls:** `readProcessForm`, `showNotice`, `showError`, `hideError`, `hideNotice`, `resetForm`, `invalidateResults`, `refreshPriorityFeedback`.
 - **Called by:** form `submit` event.
 
 ### `startEdit(index)`
@@ -592,7 +629,7 @@ All functions are inside an IIFE, so the global namespace only receives DOM even
 - **Parameters:** click event.
 - **Returns:** none.
 - **Internal working:** finds the nearest `button[data-action]`, validates the row index, calls `startEdit` for Edit. For Delete it splices the process out, adjusts `editIndex` (reset if the edited row was deleted, decrement if an earlier row was deleted), redraws, invalidates results and shows a notice.
-- **Calls:** `startEdit`, `resetForm`, `renderProcessTable`, `invalidateResults`, `showNotice`.
+- **Calls:** `startEdit`, `resetForm`, `invalidateResults`, `refreshPriorityFeedback`, `showNotice`.
 - **Called by:** click listener on `#process-tbody`.
 
 ### `loadSample()`
@@ -601,7 +638,7 @@ All functions are inside an IIFE, so the global namespace only receives DOM even
 - **Parameters:** none.
 - **Returns:** none.
 - **Internal working:** deep-copies `SAMPLE_PROCESSES`, resets the form, redraws, invalidates results, shows a notice and scrolls to the process section.
-- **Calls:** `resetForm`, `renderProcessTable`, `invalidateResults`, `showNotice`, `scrollToElement`.
+- **Calls:** `resetForm`, `invalidateResults`, `refreshPriorityFeedback`, `showNotice`, `scrollToElement`.
 - **Called by:** **Load sample** buttons in the hero and process section.
 
 ### `clearAllProcesses()`
@@ -610,7 +647,7 @@ All functions are inside an IIFE, so the global namespace only receives DOM even
 - **Parameters:** none.
 - **Returns:** none.
 - **Internal working:** if already empty, shows a notice. Otherwise clears the array, resets the form, redraws, invalidates results and confirms the clear.
-- **Calls:** `resetForm`, `renderProcessTable`, `invalidateResults`, `showNotice`.
+- **Calls:** `resetForm`, `invalidateResults`, `refreshPriorityFeedback`, `showNotice`.
 - **Called by:** **Clear all** button.
 
 ### `selectAlgorithm(algorithmKey)`
@@ -663,8 +700,8 @@ All functions are inside an IIFE, so the global namespace only receives DOM even
 - **Purpose:** Run the selected algorithm and display the result.
 - **Parameters:** none.
 - **Returns:** none (async).
-- **Internal working:** rejects an empty list, validates the quantum when needed, disables the button, posts to `/api/schedule`, stores and renders the response, scrolls to results, restores the button, and shows any error inline.
-- **Calls:** `hideError`, `hideNotice`, `showError`, `readQuantum`, `setButtonBusy`, `postJSON`, `renderResults`, `scrollToElement`.
+- **Internal working:** rejects an empty list, verifies that every priority is present when the selected algorithm is priority-based, validates the quantum when needed, disables the button, posts to `/api/schedule`, stores and renders the response, scrolls to results, restores the button, and shows any error inline.
+- **Calls:** `hideError`, `hideNotice`, `showError`, `isPriorityAlgorithm`, `missingPriorityProcesses`, `priorityErrorMessage`, `readQuantum`, `setButtonBusy`, `postJSON`, `renderResults`, `scrollToElement`.
 - **Called by:** **Run simulation** button.
 
 ### `metricCell(result, metricKey, suffix, best)`
@@ -695,7 +732,7 @@ All functions are inside an IIFE, so the global namespace only receives DOM even
 - **Purpose:** Run all six algorithms and show the comparison.
 - **Parameters:** none.
 - **Returns:** none (async).
-- **Internal working:** rejects an empty list, validates the quantum (with a note that comparison includes Round Robin), disables the button, posts to `/api/compare`, stores and renders the result, scrolls to the section, restores the button and shows inline errors.
+- **Internal working:** rejects an empty list, verifies that every priority is present because the comparison includes both priority algorithms, validates the quantum, disables the button, posts to `/api/compare`, stores and renders the result, scrolls to the section, restores the button and shows inline errors.
 - **Calls:** `showError`, `hideNotice`, `readQuantum`, `setButtonBusy`, `postJSON`, `renderComparison`, `scrollToElement`.
 - **Called by:** **Compare all six** button.
 

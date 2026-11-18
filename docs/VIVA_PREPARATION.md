@@ -88,7 +88,7 @@ The OS usually does not know the next CPU burst in advance, so it must be estima
 
 ### 20. How does Priority Scheduling work in this project?
 
-Among the processes that have arrived, the one with the smallest priority number runs to completion. It is non-preemptive. Ties are broken by arrival time and then Process ID.
+Among the processes that have arrived, the one with the smallest priority number runs to completion. It is non-preemptive. Ties are broken by arrival time and then Process ID. Priority is optional while creating a process, but every process must have one before this algorithm is run.
 
 ### 21. Why does a lower priority number mean higher priority here?
 

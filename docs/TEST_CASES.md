@@ -686,9 +686,12 @@ All messages below come from `app.py` and are shown inline in the browser. No br
 | Arrival `-1` | 400 | `Process 'P1': Arrival time cannot be negative.` |
 | Burst `0` | 400 | `Process 'P1': Burst time must be greater than 0.` |
 | Priority `-1` | 400 | `Process 'P1': Priority cannot be negative.` |
+| Priority `"abc"` | 400 | `Process 'P1': Priority must be a whole number.` |
 | Arrival `"abc"` | 400 | `Process 'P1': Arrival time must be a whole number.` |
 | Burst `2.5` | 400 | `Process 'P1': Burst time must be a whole number.` |
-| Missing priority | 400 | `Process 'P1': Priority is required.` |
+| Missing priority, algorithm `fcfs`/`sjf`/`srtf`/`rr` | 200 | Accepted; returned priority is `null` |
+| Missing priority, algorithm `priority` or `priority_preemptive` | 400 | `Priority values are missing for P1. Please update these processes before running this algorithm.` |
+| Missing priority, `/api/compare` | 400 | `Priority values are missing for P1. Please update these processes before running the comparison.` |
 | Empty PID `""` | 400 | `Process #1: Process ID is required.` |
 | PID `"Idle"` | 400 | `The Process ID 'Idle' is reserved for idle CPU time. Choose another ID.` |
 | PID `"P 1"` (space) | 400 | `Process ID 'P 1' is invalid. Use 1-16 letters, numbers, hyphens or underscores.` |
@@ -729,8 +732,7 @@ Timing varies slightly by machine; the test count and results do not.
 | Ties and simultaneous arrivals | `test_sjf_equal_burst_tie_uses_arrival_then_pid`, `test_priority_tie_ignores_burst_and_uses_pid`, `test_fcfs_simultaneous_arrivals_are_sorted_by_pid`, `test_sjf_and_priority_simultaneous_arrivals`, `test_srtf_simultaneous_arrivals_use_remaining_then_pid` |
 | Best algorithm / ties | `test_find_best_algorithms_on_sample`, `test_find_best_algorithms_keeps_ties` |
 | Web page and assets | `test_index_page_loads`, `test_static_assets_load` |
-| API success | `test_api_schedule_fcfs`, `test_api_schedule_round_robin`, `test_api_schedule_srtf`, `test_api_schedule_preemptive_priority`, `test_api_compare` |
-| API validation | `test_api_schedule_rejects_bad_settings` (6 parameter cases), `test_api_rejects_invalid_process_fields` (9 cases), `test_api_rejects_duplicate_pids_case_insensitively`, `test_api_compare_requires_quantum`, `test_api_rejects_non_json_body` |
+| API success | `test_api_schedule_fcfs`, `test_api_schedule_round_robin`, `test_api_schedule_srtf`, `test_api_schedule_preemptive_priority`, `test_api_compare` || API validation | `test_api_schedule_rejects_bad_settings` (6 parameter cases), `test_api_rejects_invalid_process_fields` (9 cases), `test_api_rejects_duplicate_pids_case_insensitively`, `test_api_compare_requires_quantum`, `test_api_rejects_non_json_body` |
 
 The test file is `tests/test_algorithms.py`.
 
@@ -756,6 +758,12 @@ POST /api/compare (no quantum)    -> 400 | Time quantum is required.
 The page was then driven in headless Chrome:
 
 - sample workload loaded → 5 table rows
+- mixed processes added with and without priority → table shows `—` for missing values
+- FCFS/SJF/SRTF/RR all run without priority values; Round Robin still requires a valid quantum
+- selecting Priority/Preemptive Priority with missing values → warning names the affected PIDs and highlights their rows
+- Compare all six with missing priorities → comparison blocked with a PID-specific message
+- editing the missing values → warning clears; Priority and the full comparison then succeed
+- switching algorithms → process list and all priorities remain intact
 - FCFS → average TAT 6.80, WT 3.80, RT 3.80, utilization 100.00%, 5 Gantt blocks
 - SRTF → average TAT 6.00, WT 3.00, RT 2.80, utilization 100.00%, 6 Gantt blocks
 - Preemptive Priority → average TAT 7.00, WT 4.00, RT 3.40, utilization 100.00%, 6 Gantt blocks

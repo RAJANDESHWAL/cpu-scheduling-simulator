@@ -12,7 +12,7 @@ A complete, browser-based **CPU Task Scheduler Simulator** built as an Operating
 
 Operating systems must decide which ready process gets the CPU next. Different policies produce different waiting times, turnaround times and response times. This simulator makes those differences visible:
 
-1. Add processes with an arrival time, burst time and priority.
+1. Add processes with an arrival time, burst time and optional priority.
 2. Choose FCFS, SJF, SRTF, Round Robin or Priority Scheduling.
 3. Run the simulation and inspect the Gantt chart and metrics.
 4. Compare all six algorithms on exactly the same input.
@@ -35,7 +35,8 @@ The application is served locally by **Flask** and runs entirely in a web browse
 
 ## Features
 
-- **Process management:** add, edit and delete processes; duplicate-ID detection; reserved `Idle` label.
+- **Process management:** add, edit and delete processes; optional priority; duplicate-ID detection; reserved `Idle` label.
+- **Optional priority validation:** FCFS, SJF, SRTF and Round Robin run without priority values; both priority algorithms require complete priority data.
 - **Six algorithms:** FCFS, SJF, SRTF (preemptive SJF), Round Robin (configurable quantum), non-preemptive Priority and Preemptive Priority Scheduling.
 - **Interactive Gantt chart:** duration-scaled coloured blocks with a readable minimum width, process labels, time markers, hover/focus tooltips, idle blocks and a legend.
 - **Per-process results:** arrival, burst, priority, first start, completion, TAT, WT and RT.
@@ -63,6 +64,7 @@ The application is served locally by **Flask** and runs entirely in a web browse
 ### Scheduling conventions used everywhere
 
 - **Tie-breaking:** each algorithm compares its primary key, then arrival time, then the smaller Process ID. For SJF the primary key is burst time; for SRTF it is remaining time; for both Priority variants it is the priority number.
+- **Optional priority:** priority is not needed by FCFS, SJF, SRTF or Round Robin. The two priority policies require a priority for every process; missing values are shown as `—` and must be edited before those algorithms or the full comparison can run.
 - **Simultaneous arrivals:** all processes arriving at the same time become available together and are ordered by the tie-breaking rule.
 - **Process ID ordering:** natural ordering is used, so `P2` comes before `P10`. IDs without a numeric suffix are compared case-insensitively.
 - **Idle CPU:** if no process has arrived, an `Idle` block is inserted and time jumps to the next arrival. Idle time is excluded from CPU utilization.
@@ -180,11 +182,11 @@ Runs one algorithm.
 }
 ```
 
-`quantum` is required only when `algorithm` is `"rr"`. Successful responses contain `algorithm_key`, `algorithm`, `quantum`, `timeline`, `processes` and `metrics`. Invalid input returns HTTP 400 with `{"error": "..."}`.
+`quantum` is required only when `algorithm` is `"rr"`. Priority is optional in the process payload and is returned as `null` when absent; it is required by `priority`/`priority_preemptive` and by the comparison endpoint. Successful responses contain `algorithm_key`, `algorithm`, `quantum`, `timeline`, `processes` and `metrics`. Invalid input returns HTTP 400 with `{"error": "..."}`.
 
 ### `POST /api/compare`
 
-Runs all six algorithms on the same list. `quantum` is always required because Round Robin is included.
+Runs all six algorithms on the same list. `quantum` is always required because Round Robin is included. Every process must have a priority because the comparison includes both priority policies; missing priorities produce a 400 error naming the affected PIDs.
 
 ```json
 {
@@ -263,7 +265,7 @@ The page loads Chart.js from `https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/c
 ## Using the website
 
 1. **Load a workload.** Press **Load sample** for five ready-made processes, or add your own.
-2. **Add a process.** Enter a Process ID, whole-number arrival time, burst time and priority. Press **Add process**.
+2. **Add a process.** Enter a Process ID, whole-number arrival time and burst time. Priority is optional; it is required only when running Priority or Preemptive Priority. Press **Add process**.
 3. **Edit or delete.** Use the **Edit** and **Delete** buttons in the process table. Editing keeps the process in its current list position; **Cancel edit** restores add mode.
 4. **Choose an algorithm.** Click one of the six algorithm cards. The quantum field appears only for Round Robin.
 5. **Run.** Press **Run simulation**. The page shows the Gantt chart, per-process metrics and averages.
@@ -296,6 +298,7 @@ The tests cover:
 - FCFS, SJF, SRTF, Priority, Preemptive Priority and Round Robin on a shared sample
 - SRTF preemption, equal-remaining ties and resumption after preemption
 - Preemptive Priority preemption, equal-priority ties and resumption after preemption
+- optional priority for non-priority algorithms, and complete-priority validation for priority algorithms/comparison
 - Round Robin's arrival-at-expiry ordering rule
 - quantum of 1, quantum larger than every burst, invalid quantum
 - idle gaps and CPU utilization
@@ -350,7 +353,7 @@ The hand calculations for these values are in [TEST_CASES.md](TEST_CASES.md).
 
 - **Simulation, not control:** the program never interacts with the real OS scheduler.
 - **Single core only:** no multiprocessor load balancing.
-- **Whole-number time units:** arrival, burst, priority and quantum must be integers. Decimal times are rejected.
+- **Whole-number time units:** arrival, burst, priority (when provided) and quantum must be integers. Decimal times are rejected.
 - **No I/O or context-switch overhead:** processes are CPU-bound and switching is free.
 - **Priority is non-preemptive**, while **Preemptive Priority** is provided as a separate algorithm. Both are required variants; neither uses aging.
 - **No aging:** SJF and Priority can starve long or low-priority processes in theory.

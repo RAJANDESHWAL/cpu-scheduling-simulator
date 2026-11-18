@@ -1639,3 +1639,28 @@ button {
 [data-theme="dark"] .brand-text small {
     color: #cbd5e1;
 }
+
+.missing-priority td {
+    background: rgba(217, 119, 6, 0.08);
+}
+
+.missing-priority td:first-child {
+    box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.missing-priority:hover td {
+    background: rgba(217, 119, 6, 0.13);
+}
+
+.missing-value {
+    color: var(--accent);
+    font-weight: 800;
+}
+
+[data-theme="dark"] .missing-priority td {
+    background: rgba(251, 191, 36, 0.08);
+}
+
+[data-theme="dark"] .missing-priority:hover td {
+    background: rgba(251, 191, 36, 0.13);
+}
