@@ -251,6 +251,8 @@ http://127.0.0.1:5000
 
 Press `Ctrl+C` in the terminal to stop the server.
 
+> **Reloader note:** `app.py` runs with `use_reloader=False`. On some Anaconda/Windows setups, Watchdog watches the entire `site-packages` directory and repeatedly restarts Flask. Debug error pages remain enabled; restart manually after code changes.
+
 ### Visual Studio Code
 
 1. Open the `cpu-scheduler-simulator` folder in VS Code.
